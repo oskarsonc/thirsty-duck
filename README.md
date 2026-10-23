@@ -43,6 +43,7 @@ There is no download yet. The app is not signed with an Apple Developer ID, so m
 git clone https://github.com/oskarsonc/thirsty-duck.git
 cd thirsty-duck
 ./build.sh
+mkdir -p ~/Applications
 cp -R "build/Thirsty Duck.app" ~/Applications/
 open ~/Applications/"Thirsty Duck.app"
 ```
@@ -59,7 +60,7 @@ The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple 
 | **Call the duck now** | Brings the duck at once. Good for a first look. |
 | **Remind every** | 20, 30, 45 or 60 minutes of computer use. |
 | **Active hours** | When the duck may come: **Starts at** 06:00–12:00, **Ends at** 16:00–24:00, and **Weekends** on or off. |
-| **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. Screens are matched by name. |
+| **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. |
 | **Open at login** | Starts the duck when you log in. |
 | **Quit** | |
 

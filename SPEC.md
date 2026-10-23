@@ -94,7 +94,7 @@ A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
 - A disabled first line with the status (`Duck.status`): `Next duck in N min` (rounded up), `The duck is here 🦆`, or `Off until HH:MM` (with the weekday if it is not today or tomorrow).
 - `Active hours` submenu: `Starts at` 06:00-12:00, `Ends at` 16:00-24:00, and a `Weekends` toggle. Saved; sets `workHours`. Hidden in fast mode.
 - `Remind every` submenu: 20, 30, 45 or 60 min. The choice is saved and sets `reminderInterval`. Hidden in fast mode.
-- `Show on` submenu, only with more than one screen: the screen the duck comes in on. The main screen by default. Saved by screen name; if that screen is not connected, the main screen is used.
+- `Show on` submenu, only with more than one screen: the screen the duck comes in on. The main screen by default. Saved by display ID; if that screen is not connected, the main screen is used. Screens with the same name get a number.
 - `Open at login` toggle (`SMAppService.mainApp`)
 - `Quit`
 

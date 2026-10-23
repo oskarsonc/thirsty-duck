@@ -406,7 +406,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(sim.duck.phase == .hidden)
     sim.duck.timings.reminderInterval = 20 * minute
     sim.run(1)
-    #expect(sim.duck.isVisible)
+    #expect(sim.duck.phase == .entering(.chill))
 }
 
 @Test func fastTimingsAreShortAndIgnoreWorkHours() {
@@ -487,4 +487,31 @@ extension DuckPhase {
     sim.run(1)
     #expect(sim.duck.phase == .leaving)
     #expect(sim.duck.workTime == 0)
+}
+
+@Test func aNewIntervalDoesNotChangeTheVisibleDucksThirst() {
+    var sim = Sim()
+    sim.run(46 * minute)
+    #expect(sim.thirst == .chill)
+    sim.duck.timings.reminderInterval = 20 * minute
+    sim.run(1)
+    #expect(sim.thirst == .chill)
+    sim.run(5 * minute, every: 0.05)
+    #expect(sim.thirst == .ask)
+    sim.duck.timings.reminderInterval = 90 * minute
+    sim.run(5 * minute, every: 0.05)
+    #expect(sim.thirst == .thirsty)
+}
+
+@Test func aRemovedScreenSendsTheDuckToAConnectedOne() {
+    var sim = Sim()
+    let main = sim.sensors.screens[0]
+    let external = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+    sim.sensors.screens = [Screen(frame: external, visible: external), main]
+    sim.run(46 * minute)
+    #expect(external.contains(sim.duck.position))
+    sim.sensors.screens = [main]
+    sim.run(6 * minute, every: 0.05)
+    #expect(sim.thirst == .ask)
+    #expect(main.frame.contains(sim.duck.position))
 }

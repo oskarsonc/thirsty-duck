@@ -66,15 +66,20 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
         weekendsItem.state = Settings.weekends ? .on : .off
 
-        let names = NSScreen.screens.map(\.localizedName)
-        screenItem.isHidden = names.count < 2
+        let screens = NSScreen.screens
+        screenItem.isHidden = screens.count < 2
         screenMenu.removeAllItems()
-        let picked = Settings.screenName.flatMap { names.contains($0) ? $0 : nil }
-        for (i, name) in names.enumerated() {
-            let choice = screenMenu.addItem(withTitle: i == 0 ? "\(name) (main)" : name, action: #selector(pickScreen), keyEquivalent: "")
+        let ids = screens.map(\.displayID)
+        let picked = Settings.screenID.flatMap { ids.contains($0) ? $0 : nil } ?? ids.first ?? nil
+        for (i, screen) in screens.enumerated() {
+            // Two screens of the same model have the same name, so number them.
+            var title = screen.localizedName
+            if screens.filter({ $0.localizedName == title }).count > 1 { title += " \(screens[..<i].filter { $0.localizedName == title }.count + 1)" }
+            if i == 0 { title += " (main)" }
+            let choice = screenMenu.addItem(withTitle: title, action: #selector(pickScreen), keyEquivalent: "")
             choice.target = self
-            choice.representedObject = i == 0 ? nil : name
-            choice.state = (picked ?? names[0]) == name ? .on : .off
+            choice.representedObject = i == 0 ? nil : ids[i].map { NSNumber(value: $0) }
+            choice.state = ids[i] == picked ? .on : .off
         }
     }
 
@@ -116,7 +121,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     @objc private func pickScreen(_ sender: NSMenuItem) {
-        Settings.screenName = sender.representedObject as? String
+        Settings.screenID = (sender.representedObject as? NSNumber)?.uint32Value
         controller.screenChoiceChanged()
     }
 

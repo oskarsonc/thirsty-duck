@@ -17,6 +17,10 @@ public struct Duck: Sendable {
     public private(set) var bubbleSince: Date = .distantPast
 
     private var stage: CGRect = .zero
+    /// The frame of the screen the duck came in on. If it goes away or changes, the duck moves to a connected screen.
+    private var stageFrame: CGRect = .zero
+    /// `workTime` when the duck came. Thirst counts from here, so a new interval does not change the current level.
+    private var arrivedAt: TimeInterval?
     /// The real bottom edge of the screen. The Dock may not reach the duck, so it does not stand on it.
     private var ground: CGFloat = 0
     private var home: CGPoint = .zero
@@ -44,7 +48,7 @@ public struct Duck: Sendable {
     }
 
     public var level: Thirst {
-        let over = workTime - timings.reminderInterval
+        let over = workTime - (arrivedAt ?? timings.reminderInterval)
         guard over > 0 else { return .chill }
         return Thirst(rawValue: min(Thirst.follow.rawValue, 1 + Int(over / timings.levelStep)))!
     }
@@ -138,6 +142,7 @@ public struct Duck: Sendable {
             leave(now, s)
         }
         if inWorkHours { workTime += worked }
+        if isVisible && !s.screens.contains(where: { $0.frame == stageFrame }) { restage(now, s) }
 
         switch phase {
         case .hidden:
@@ -195,13 +200,39 @@ public struct Duck: Sendable {
 
     private mutating func enter(_ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first else { return }
-        stage = screen.visible
-        ground = screen.frame.minY
+        takeStage(screen)
         position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
-        home = CGPoint(x: stage.maxX - Motion.homeInset, y: ground)
         facingRight = false
         shownAt = now
-        set(.entering(level), now)
+        arrivedAt = workTime
+        set(.entering(.chill), now)
+    }
+
+    private mutating func takeStage(_ screen: Screen) {
+        stage = screen.visible
+        stageFrame = screen.frame
+        ground = screen.frame.minY
+        home = CGPoint(x: stage.maxX - Motion.homeInset, y: ground)
+    }
+
+    /// The duck's screen was removed or changed: walk in again on a connected screen at the same level.
+    private mutating func restage(_ now: Date, _ s: Sensors) {
+        guard let screen = s.screens.first else { return }
+        takeStage(screen)
+        switch phase {
+        case .happy, .leaving:
+            set(.hidden, now)
+        case .asleep(let t):
+            if t != .follow { position = home }
+        case .entering(let t), .moving(let t), .waiting(let t, _):
+            // Follow finds the cursor's screen by itself.
+            guard t != .follow else { break }
+            position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
+            facingRight = false
+            set(.entering(t), now)
+        case .hidden:
+            break
+        }
     }
 
     private mutating func leave(_ now: Date, _ s: Sensors) {
@@ -285,6 +316,7 @@ public struct Duck: Sendable {
     private mutating func set(_ phase: DuckPhase, _ now: Date) {
         self.phase = phase
         phaseStart = now
+        if phase == .hidden { arrivedAt = nil }
     }
 }
 

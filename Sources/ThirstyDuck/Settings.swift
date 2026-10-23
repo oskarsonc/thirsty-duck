@@ -15,10 +15,10 @@ enum Settings {
         set { defaults.set(newValue, forKey: "reminderMinutes") }
     }
 
-    /// The name of the screen the duck comes in on. `nil` means the main screen.
-    static var screenName: String? {
-        get { defaults.string(forKey: "screenName") }
-        set { defaults.set(newValue, forKey: "screenName") }
+    /// The display ID of the screen the duck comes in on. `nil` means the main screen.
+    static var screenID: UInt32? {
+        get { (defaults.object(forKey: "screenID") as? NSNumber)?.uint32Value }
+        set { defaults.set(newValue.map { NSNumber(value: $0) }, forKey: "screenID") }
     }
 
     static var startHour: Int {

@@ -151,7 +151,13 @@ final class DuckController {
     /// The picked screen goes first, so the duck comes in there. If it is not connected, the main screen stays first.
     private static func readScreens() -> [Screen] {
         var all = NSScreen.screens
-        if let i = all.firstIndex(where: { $0.localizedName == Settings.screenName }) { all.insert(all.remove(at: i), at: 0) }
+        if let i = all.firstIndex(where: { $0.displayID == Settings.screenID }) { all.insert(all.remove(at: i), at: 0) }
         return all.map { Screen(frame: $0.frame, visible: $0.visibleFrame) }
+    }
+}
+
+extension NSScreen {
+    var displayID: UInt32? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 }
