@@ -7,6 +7,15 @@ struct FakeTime: TimeSource {
     var now: Date
 }
 
+extension Timings {
+    /// The normal timings with a fixed 45 min interval, so the tests do not move when the user's interval does.
+    static let test: Timings = {
+        var t = Timings.normal
+        t.reminderInterval = 45 * 60
+        return t
+    }()
+}
+
 struct Sim {
     var time: FakeTime
     var duck: Duck
@@ -18,7 +27,7 @@ struct Sim {
     )
 
     /// Starts on a Wednesday at the given local hour in UTC.
-    init(timings: Timings = .normal, hour: Int = 10) {
+    init(timings: Timings = .test, hour: Int = 10) {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!
         var t = timings
@@ -286,21 +295,21 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
 }
 
 @Test func offHoursDoNotStartAReminder() {
-    var sim = Sim(hour: 19)
-    sim.run(3 * 60 * minute)
+    var sim = Sim(hour: 23)
+    sim.run(8 * 60 * minute)
     #expect(sim.duck.phase == .hidden)
     #expect(sim.duck.workTime == 0)
 }
 
-@Test func weekendDoesNotStartAReminder() {
+@Test func weekendAlsoStartsAReminder() {
     var sim = Sim()
     sim.time.now += 3 * 24 * 60 * minute
-    sim.run(2 * 60 * minute)
-    #expect(sim.duck.phase == .hidden)
+    sim.run(46 * minute)
+    #expect(sim.duck.isVisible)
 }
 
 @Test func endOfWorkHoursSendsTheDuckAwayAndResets() {
-    var sim = Sim(hour: 17)
+    var sim = Sim(hour: 22)
     sim.run(50 * minute)
     #expect(sim.duck.isVisible)
     sim.run(11 * minute)
@@ -349,13 +358,13 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
 
 @Test func fastTimingsDivideByAMinuteAndIgnoreWorkHours() {
     let fast = Timings.from(environment: ["DUCK_FAST": "1"])
-    #expect(fast.reminderInterval == 45)
+    #expect(fast.reminderInterval == 30)
     #expect(fast.levelStep == 5)
     #expect(fast.awayAfter == 5)
     #expect(fast.longBreak == 30)
     #expect(fast.workHours == nil)
     var sim = Sim(timings: fast, hour: 23)
-    sim.run(45)
+    sim.run(30)
     #expect(sim.duck.phase == .entering(.chill))
 }
 
@@ -364,7 +373,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(20)
     sim.sleep(40)
     #expect(sim.duck.workTime == 0)
-    sim.run(40)
+    sim.run(25)
     #expect(sim.duck.phase == .hidden)
 }
 
@@ -373,7 +382,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(20)
     sim.run(40, every: 40)
     #expect(sim.duck.workTime == 0)
-    sim.run(40)
+    sim.run(25)
     #expect(sim.duck.phase == .hidden)
 }
 

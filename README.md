@@ -2,7 +2,7 @@
 
 A pixel duckling walks onto your screen to remind you to drink water. It walks in from the right edge and sits on top of the Dock. If you ignore it, it gets more thirsty: first it asks, then it sweats, then it follows your cursor. Click the duck when you drank. It is happy and walks off to the right, and the reminder starts again.
 
-The reminder counts only work time: Monday to Friday, 08:00 to 18:00, while you use the Mac. After 5 minutes with no input the duck falls asleep and the clock stops. Mac sleep counts as part of the break. A break of 30 minutes or more, counted from your last input, starts the clock again from zero.
+The duck comes after 30 minutes of use. The clock counts only time when you use the Mac, every day from 08:00 to 23:00. After 5 minutes with no input the duck falls asleep and the clock stops. Mac sleep counts as part of the break. A break of 30 minutes or more, counted from your last input, starts the clock again from zero.
 
 The app has a menu bar icon with `Call the duck now`, `Open at login` and `Quit`. It has no Dock icon and no settings.
 
@@ -29,7 +29,7 @@ swift test -Xswiftc -load-plugin-library \
 DUCK_FAST=1 "build/Thirsty Duck.app/Contents/MacOS/ThirstyDuck"
 ```
 
-All times are divided by 60 and work hours are ignored. The duck comes after 45 s and gets more thirsty every 5 s. It sleeps after 5 s with no input. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
+All times are divided by 60 and work hours are ignored. The duck comes after 30 s and gets more thirsty every 5 s. It sleeps after 5 s with no input. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
 
 ## Redraw rate
 

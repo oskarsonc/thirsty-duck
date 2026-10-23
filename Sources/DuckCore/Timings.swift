@@ -3,9 +3,9 @@ import Foundation
 
 public struct WorkHours: Sendable {
     /// Calendar weekdays, 1 is Sunday.
-    public var weekdays: Set<Int> = [2, 3, 4, 5, 6]
+    public var weekdays: Set<Int> = [1, 2, 3, 4, 5, 6, 7]
     public var startHour = 8
-    public var endHour = 18
+    public var endHour = 23
     public var calendar = Calendar.current
 
     public init(calendar: Calendar = .current) {
@@ -28,7 +28,7 @@ public struct Timings: Sendable {
     public var workHours: WorkHours?
 
     public static let normal = Timings(
-        reminderInterval: 45 * 60,
+        reminderInterval: 30 * 60,
         levelStep: 5 * 60,
         awayAfter: 5 * 60,
         longBreak: 30 * 60,

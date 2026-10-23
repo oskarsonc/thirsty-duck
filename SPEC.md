@@ -71,21 +71,21 @@ The timer counts only time when the user is at the Mac and inside work hours.
 - Mac sleep: the app gets the `NSWorkspace` sleep and wake notifications. Sleep time is never work. The lid, a key or the mouse wakes the Mac, so a wake after a sleep counts as input. A wake with no sleep before it is a plain tick, and a second sleep changes nothing.
 - While away: the timer pauses. If the duck is on screen, it falls asleep where it is (closed eyes, `💤`, no bubble), and thirst does not go up. When the user comes back, it wakes and goes on at the same level.
 - Long break: a break runs from the last input to the next one. Input is what the idle counter shows, a click on the duck, `Call the duck now`, or a wake. A break of `longBreak` (30 min) or more, idle time and Mac sleep together, is a fresh start. Hide the duck if it is up, and start the timer from zero.
-- Work hours: Monday to Friday, 08:00 to 18:00 local time (constants). Outside work hours the duck does not come. If it is up when work hours end, it walks away. The timer starts from zero at the next work start.
+- Work hours: every day, 08:00 to 23:00 local time (constants). Outside work hours the duck does not come. If it is up when work hours end, it walks away. The timer starts from zero at the next work start.
 - Fullscreen apps: the duck shows over them too (all Spaces, fullscreen auxiliary).
 
 ## Times (constants in one place)
 
 ```
-reminderInterval = 45 min
+reminderInterval = 30 min
 levelStep        = 5 min    (so Follow starts 15 min after the duck arrives)
 awayAfter        = 5 min
 longBreak        = 30 min
-workDays         = Mon-Fri
-workHours        = 08:00-18:00
+workDays         = every day
+workHours        = 08:00-23:00
 ```
 
-`DUCK_FAST=1` environment variable: divide every time by 60 (45 s interval, 5 s levels, 5 s away, 30 s long break) and ignore work hours. This is for testing only.
+`DUCK_FAST=1` environment variable: divide every time by 60 (30 s interval, 5 s levels, 5 s away, 30 s long break) and ignore work hours. This is for testing only.
 
 ## Menu bar
 
