@@ -49,9 +49,10 @@ struct DuckView: View {
         case .waiting(.thirsty, _), .moving(.thirsty), .waiting(.follow, _), .moving(.follow):
             ForEach(0..<2, id: \.self) { i in
                 let k = (w * 0.9 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+                let side: CGFloat = i == 0 ? -1 : 1
                 Text("💦").font(.system(size: 11))
                     .opacity(1 - k)
-                    .position(x: headX + (i == 0 ? -24 : 22), y: spriteTop + 6 + k * 22)
+                    .position(x: headX + side * (16 + k * 10), y: spriteTop - 4 + k * 12)
             }
         case .asleep:
             let k = (w / 2).truncatingRemainder(dividingBy: 1)
