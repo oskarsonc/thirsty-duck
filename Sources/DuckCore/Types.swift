@@ -82,6 +82,8 @@ public struct Sensors: Sendable {
 
 public enum DuckInput: Sendable {
     case tick, click, callNow
+    /// The Mac goes to sleep or wakes up (`NSWorkspace` notifications).
+    case sleep, wake
 }
 
 struct SplitMix64: RandomNumberGenerator, Sendable {

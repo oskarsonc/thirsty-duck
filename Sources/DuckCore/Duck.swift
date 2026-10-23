@@ -9,7 +9,6 @@ public struct Duck: Sendable {
     public private(set) var shownAt: Date = .distantPast
     /// Counted work time since the last reset. It drives both the reminder and the thirst level.
     public private(set) var workTime: TimeInterval = 0
-    public private(set) var awayTime: TimeInterval = 0
     /// Bottom center of the duck, in global AppKit coordinates.
     public private(set) var position: CGPoint = .zero
     public private(set) var facingRight = true
@@ -20,6 +19,10 @@ public struct Duck: Sendable {
     private var nextTrickAt: Date = .distantPast
     private var lastTrick: Trick?
     private var lastTick: Date?
+    /// The last real user input. Every break is measured from it.
+    private var lastInput: Date = .distantPast
+    private var wokeAt: Date = .distantPast
+    private var macAsleep = false
     private var wasWorkHours: Bool?
     private var rng: SplitMix64
 
@@ -64,14 +67,25 @@ public struct Duck: Sendable {
         case .tick: tick(now, sensors)
         case .click: click(now)
         case .callNow: callNow(now, sensors)
+        case .sleep:
+            tick(now, sensors)
+            macAsleep = true
+        case .wake:
+            macAsleep = false
+            lastTick = now
+            wokeAt = now
+            tick(now, sensors)
         }
     }
+
+    /// The idle counter can read as fresh input right after a wake, from the wake itself.
+    static let wakeGrace: TimeInterval = 5
 
     private mutating func click(_ now: Date) {
         switch phase {
         case .entering, .waiting, .moving, .asleep:
             workTime = 0
-            awayTime = 0
+            lastInput = now
             set(.happy, now)
         case .hidden, .happy, .leaving:
             break
@@ -85,21 +99,22 @@ public struct Duck: Sendable {
     }
 
     private mutating func tick(_ now: Date, _ s: Sensors) {
-        let dt = max(0, lastTick.map { now.timeIntervalSince($0) } ?? 0)
+        let last = lastTick ?? now
+        let dt = max(0, now.timeIntervalSince(last))
         lastTick = now
+        guard !macAsleep else { return }
 
-        if dt > timings.sleepGap {
-            awayTime += dt
-        } else if s.idleSeconds >= timings.awayAfter {
-            awayTime = max(awayTime + dt, s.idleSeconds)
-        } else {
-            awayTime = 0
-        }
-        let away = awayTime > 0
+        let before = lastInput
+        let seen = now - s.idleSeconds
+        if seen > lastInput && seen > wokeAt + Self.wakeGrace { lastInput = seen }
+        let split = min(max(last, lastInput), now)
+        let worked = present(last, split, since: before) + present(split, now, since: lastInput)
+        let longestBreak = max(lastInput.timeIntervalSince(before), now.timeIntervalSince(lastInput))
+        let away = now.timeIntervalSince(lastInput) >= timings.awayAfter
         let inWorkHours = timings.workHours?.contains(now) ?? true
         defer { wasWorkHours = inWorkHours }
 
-        if awayTime >= timings.longBreak {
+        if longestBreak >= timings.longBreak {
             workTime = 0
             if phase != .hidden { set(.hidden, now) }
             return
@@ -108,7 +123,7 @@ public struct Duck: Sendable {
             workTime = 0
             leave(now, s)
         }
-        if inWorkHours && !away { workTime += dt }
+        if inWorkHours { workTime += worked }
 
         switch phase {
         case .hidden:
@@ -205,6 +220,11 @@ public struct Duck: Sendable {
             }
             return CGPoint(x: x, y: max(m.y - Motion.followDrop, screen.minY))
         }
+    }
+
+    /// How much of `from..<to` lies within `awayAfter` of the input at `input`.
+    private func present(_ from: Date, _ to: Date, since input: Date) -> TimeInterval {
+        max(0, min(to, input + timings.awayAfter).timeIntervalSince(max(from, input)))
     }
 
     /// Returns true on arrival.

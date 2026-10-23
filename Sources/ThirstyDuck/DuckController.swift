@@ -21,6 +21,12 @@ final class DuckController {
         host.frame = NSRect(origin: .zero, size: DuckView.size)
         panel.contentView = host
         panel.onClick = { [weak self] in self?.send(.click) }
+        let center = NSWorkspace.shared.notificationCenter
+        for (name, input) in [(NSWorkspace.willSleepNotification, DuckInput.sleep), (NSWorkspace.didWakeNotification, .wake)] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.send(input) }
+            }
+        }
     }
 
     func start() { send(.tick) }

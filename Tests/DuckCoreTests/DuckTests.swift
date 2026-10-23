@@ -41,6 +41,14 @@ struct Sim {
         }
     }
 
+    /// Sleeps the Mac for `seconds` and wakes it with a key press.
+    mutating func sleep(_ seconds: TimeInterval) {
+        send(.sleep)
+        time.now += seconds
+        sensors.idleSeconds = 0
+        send(.wake)
+    }
+
     mutating func send(_ input: DuckInput) {
         duck.step(now: time.now, sensors: sensors, input: input)
     }
@@ -150,10 +158,42 @@ let minute: TimeInterval = 60
     var sim = Sim()
     sim.run(20 * minute)
     let before = sim.duck.workTime
-    sim.run(10 * minute, every: 10 * minute)
+    sim.sleep(10 * minute)
     #expect(sim.duck.workTime == before)
-    sim.run(40 * minute, every: 40 * minute)
+    sim.sleep(40 * minute)
     #expect(sim.duck.workTime == 0)
+}
+
+@Test func idleThenMacSleepIsOneLongBreak() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    sim.run(4 * minute, idle: true)
+    sim.sleep(27 * minute)
+    #expect(sim.duck.workTime == 0)
+    #expect(sim.duck.phase == .hidden)
+    sim.run(44 * minute)
+    #expect(sim.duck.phase == .hidden)
+}
+
+@Test func shortMacSleepDoesNotReset() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    sim.sleep(10 * minute)
+    sim.run(1 * minute)
+    #expect(sim.duck.workTime > 20 * minute)
+    #expect(sim.duck.workTime <= 21 * minute)
+    sim.run(25 * minute)
+    #expect(sim.duck.isVisible)
+}
+
+@Test func lateTickWithRecentInputCountsAsWork() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    let before = sim.duck.workTime
+    sim.time.now += 50
+    sim.sensors.idleSeconds = 2
+    sim.send(.tick)
+    #expect(sim.duck.workTime == before + 50)
 }
 
 @Test func offHoursDoNotStartAReminder() {
