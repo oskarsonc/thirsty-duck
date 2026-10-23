@@ -29,7 +29,7 @@ swift test -Xswiftc -load-plugin-library \
 DUCK_FAST=1 "build/Thirsty Duck.app/Contents/MacOS/ThirstyDuck"
 ```
 
-All times are divided by 60 and work hours are ignored. The duck comes after 30 s and gets more thirsty every 5 s. It sleeps after 5 s with no input. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
+Times are short for a demo and work hours are ignored. The duck comes after 10 s and gets more thirsty every 15 s. It sleeps after 10 s with no input, and a 30 s break starts the clock again. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
 
 ## Redraw rate
 

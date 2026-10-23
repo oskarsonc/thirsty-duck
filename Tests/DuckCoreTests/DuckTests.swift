@@ -400,15 +400,15 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(sim.duck.phase == .entering(.chill))
 }
 
-@Test func fastTimingsDivideByAMinuteAndIgnoreWorkHours() {
+@Test func fastTimingsAreShortAndIgnoreWorkHours() {
     let fast = Timings.from(environment: ["DUCK_FAST": "1"])
-    #expect(fast.reminderInterval == 30)
-    #expect(fast.levelStep == 5)
-    #expect(fast.awayAfter == 5)
+    #expect(fast.reminderInterval == 10)
+    #expect(fast.levelStep == 15)
+    #expect(fast.awayAfter == 10)
     #expect(fast.longBreak == 30)
     #expect(fast.workHours == nil)
     var sim = Sim(timings: fast, hour: 23)
-    sim.run(30)
+    sim.run(10)
     #expect(sim.duck.phase == .entering(.chill))
 }
 
@@ -417,7 +417,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(20)
     sim.sleep(40)
     #expect(sim.duck.workTime == 0)
-    sim.run(25)
+    sim.run(5)
     #expect(sim.duck.phase == .hidden)
 }
 
@@ -426,7 +426,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(20)
     sim.run(40, every: 40)
     #expect(sim.duck.workTime == 0)
-    sim.run(25)
+    sim.run(5)
     #expect(sim.duck.phase == .hidden)
 }
 
