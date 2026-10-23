@@ -42,6 +42,14 @@ public enum Trick: Equatable, Sendable {
     }
 }
 
+/// What the menu shows about the next duck.
+public enum DuckStatus: Equatable, Sendable {
+    case here
+    case nextIn(TimeInterval)
+    /// Outside the hours; `nil` if no hours are set in the next week.
+    case offUntil(Date?)
+}
+
 public enum DuckPhase: Equatable, Sendable {
     case hidden
     case entering(Thirst)

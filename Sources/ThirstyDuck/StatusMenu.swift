@@ -1,11 +1,16 @@
 import AppKit
+import DuckCore
 import ServiceManagement
 
 @MainActor
 final class StatusMenu: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Open at login", action: #selector(toggleLogin), keyEquivalent: "")
     private let reminderMenu = NSMenu()
+    private let startMenu = NSMenu()
+    private let endMenu = NSMenu()
+    private let weekendsItem = NSMenuItem(title: "Weekends", action: #selector(toggleWeekends), keyEquivalent: "")
     private let screenItem = NSMenuItem(title: "Show on", action: nil, keyEquivalent: "")
     private let screenMenu = NSMenu()
     private let controller: DuckController
@@ -16,17 +21,20 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         item.button?.image = NSImage(systemSymbolName: "drop.fill", accessibilityDescription: "Thirsty Duck")
         let menu = NSMenu()
         menu.delegate = self
+        statusLine.isEnabled = false
+        menu.addItem(statusLine)
         menu.addItem(withTitle: "Call the duck now", action: #selector(call), keyEquivalent: "").target = self
         menu.addItem(.separator())
         if !fast {
-            for minutes in Settings.reminderChoices {
-                let choice = reminderMenu.addItem(withTitle: "\(minutes) min", action: #selector(pickReminder), keyEquivalent: "")
-                choice.target = self
-                choice.tag = minutes
-            }
-            let reminderItem = NSMenuItem(title: "Remind every", action: nil, keyEquivalent: "")
-            reminderItem.submenu = reminderMenu
-            menu.addItem(reminderItem)
+            menu.addItem(submenu("Remind every", reminderMenu, Settings.reminderChoices, #selector(pickReminder)) { "\($0) min" })
+            let hoursMenu = NSMenu()
+            hoursMenu.addItem(submenu("Starts at", startMenu, Settings.startChoices, #selector(pickStart), title: Self.clock))
+            hoursMenu.addItem(submenu("Ends at", endMenu, Settings.endChoices, #selector(pickEnd), title: Self.clock))
+            weekendsItem.target = self
+            hoursMenu.addItem(weekendsItem)
+            let hoursItem = NSMenuItem(title: "Active hours", action: nil, keyEquivalent: "")
+            hoursItem.submenu = hoursMenu
+            menu.addItem(hoursItem)
         }
         screenItem.submenu = screenMenu
         menu.addItem(screenItem)
@@ -37,9 +45,26 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         item.menu = menu
     }
 
+    private func submenu(_ name: String, _ menu: NSMenu, _ choices: [Int], _ action: Selector, title: (Int) -> String) -> NSMenuItem {
+        for value in choices {
+            let choice = menu.addItem(withTitle: title(value), action: action, keyEquivalent: "")
+            choice.target = self
+            choice.tag = value
+        }
+        let item = NSMenuItem(title: name, action: nil, keyEquivalent: "")
+        item.submenu = menu
+        return item
+    }
+
+    private static func clock(_ hour: Int) -> String { String(format: "%02d:00", hour) }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
+        statusLine.title = statusText(controller.status)
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        for choice in reminderMenu.items { choice.state = choice.tag == Settings.reminderMinutes ? .on : .off }
+        for (submenu, value) in [(reminderMenu, Settings.reminderMinutes), (startMenu, Settings.startHour), (endMenu, Settings.endHour)] {
+            for choice in submenu.items { choice.state = choice.tag == value ? .on : .off }
+        }
+        weekendsItem.state = Settings.weekends ? .on : .off
 
         let names = NSScreen.screens.map(\.localizedName)
         screenItem.isHidden = names.count < 2
@@ -53,11 +78,41 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
     }
 
+    private func statusText(_ status: DuckStatus) -> String {
+        switch status {
+        case .here:
+            return "The duck is here 🦆"
+        case .nextIn(let seconds):
+            return "Next duck in \(max(1, Int((seconds / 60).rounded(.up)))) min"
+        case .offUntil(let date):
+            guard let date else { return "Off" }
+            let format = Calendar.current.isDateInToday(date) || Calendar.current.isDateInTomorrow(date) ? "HH:mm" : "EEE HH:mm"
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            return "Off until \(formatter.string(from: date))"
+        }
+    }
+
     @objc private func call() { controller.callNow() }
 
     @objc private func pickReminder(_ sender: NSMenuItem) {
         Settings.reminderMinutes = sender.tag
-        controller.setReminderMinutes(sender.tag)
+        controller.applySettings()
+    }
+
+    @objc private func pickStart(_ sender: NSMenuItem) {
+        Settings.startHour = sender.tag
+        controller.applySettings()
+    }
+
+    @objc private func pickEnd(_ sender: NSMenuItem) {
+        Settings.endHour = sender.tag
+        controller.applySettings()
+    }
+
+    @objc private func toggleWeekends() {
+        Settings.weekends.toggle()
+        controller.applySettings()
     }
 
     @objc private func pickScreen(_ sender: NSMenuItem) {

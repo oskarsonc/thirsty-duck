@@ -450,3 +450,41 @@ extension DuckPhase {
         return false
     }
 }
+
+@Test func statusCountsDownToTheNextDuck() {
+    var sim = Sim()
+    sim.run(10 * minute)
+    #expect(sim.duck.status(at: sim.time.now) == .nextIn(35 * minute))
+    sim.run(36 * minute)
+    #expect(sim.duck.status(at: sim.time.now) == .here)
+}
+
+@Test func statusOffHoursNamesTheNextStart() {
+    let sim = Sim(hour: 23)
+    let thursday8 = sim.time.now + 9 * 60 * minute
+    #expect(sim.duck.status(at: sim.time.now) == .offUntil(thursday8))
+}
+
+@Test func nextStartSkipsDaysOff() {
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC")!
+    var hours = WorkHours(calendar: utc)
+    hours.weekdays = Set(2...6)
+    hours.startHour = 9
+    hours.endHour = 24
+    let friday2330 = utc.date(from: DateComponents(year: 2026, month: 10, day: 23, hour: 23, minute: 30))!
+    #expect(hours.contains(friday2330))
+    #expect(hours.nextStart(after: friday2330) == utc.date(from: DateComponents(year: 2026, month: 10, day: 26, hour: 9)))
+    let friday7 = utc.date(from: DateComponents(year: 2026, month: 10, day: 23, hour: 7))!
+    #expect(hours.nextStart(after: friday7) == utc.date(from: DateComponents(year: 2026, month: 10, day: 23, hour: 9)))
+}
+
+@Test func shorterHoursSendAVisibleDuckAway() {
+    var sim = Sim(hour: 15)
+    sim.run(46 * minute)
+    #expect(sim.duck.isVisible)
+    sim.duck.timings.workHours?.endHour = 15
+    sim.run(1)
+    #expect(sim.duck.phase == .leaving)
+    #expect(sim.duck.workTime == 0)
+}

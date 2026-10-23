@@ -37,6 +37,12 @@ public struct Duck: Sendable {
 
     public var isVisible: Bool { phase != .hidden }
 
+    public func status(at now: Date) -> DuckStatus {
+        if isVisible { return .here }
+        if let hours = timings.workHours, !hours.contains(now) { return .offUntil(hours.nextStart(after: now)) }
+        return .nextIn(max(0, timings.reminderInterval - workTime))
+    }
+
     public var level: Thirst {
         let over = workTime - timings.reminderInterval
         guard over > 0 else { return .chill }

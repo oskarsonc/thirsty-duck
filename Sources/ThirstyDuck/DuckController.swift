@@ -42,12 +42,15 @@ final class DuckController {
 
     func callNow() { send(.callNow) }
 
-    /// Fast mode keeps its own short times.
-    func setReminderMinutes(_ minutes: Int) {
+    /// Uses the menu choices. Fast mode keeps its own short times and no hours.
+    func applySettings() {
         guard duck.timings.workHours != nil else { return }
-        duck.timings.reminderInterval = TimeInterval(minutes * 60)
+        duck.timings.reminderInterval = TimeInterval(Settings.reminderMinutes * 60)
+        duck.timings.workHours = Settings.workHours
         send(.tick)
     }
+
+    var status: DuckStatus { duck.status(at: time.now) }
 
     func screenChoiceChanged() { screens = DuckController.readScreens() }
 

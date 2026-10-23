@@ -71,7 +71,7 @@ The timer counts only time when the user is at the Mac and inside work hours.
 - Mac sleep: the app gets the `NSWorkspace` sleep and wake notifications. Sleep time is never work. The lid, a key or the mouse wakes the Mac, so a wake after a sleep counts as input. A wake with no sleep before it is a plain tick, and a second sleep changes nothing.
 - While away: the timer pauses. If the duck is on screen, it falls asleep where it is (closed eyes, `💤`, no bubble), and thirst does not go up. When the user comes back, it wakes and goes on at the same level.
 - Long break: a break runs from the last input to the next one. Input is what the idle counter shows, a click on the duck, `Call the duck now`, or a wake. A break of `longBreak` (30 min) or more, idle time and Mac sleep together, is a fresh start. Hide the duck if it is up, and start the timer from zero.
-- Work hours: every day, 08:00 to 23:00 local time (constants). Outside work hours the duck does not come. If it is up when work hours end, it walks away. The timer starts from zero at the next work start.
+- Work hours: every day, 08:00 to 23:00 local time by default; the `Active hours` menu changes them. Outside work hours the duck does not come. If it is up when work hours end, it walks away. The timer starts from zero at the next work start.
 - Fullscreen apps: the duck shows over them too (all Spaces, fullscreen auxiliary).
 
 ## Times (constants in one place)
@@ -91,6 +91,8 @@ workHours        = 08:00-23:00
 
 A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
 - `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user). It first ends any break, then counts as input.
+- A disabled first line with the status (`Duck.status`): `Next duck in N min` (rounded up), `The duck is here 🦆`, or `Off until HH:MM` (with the weekday if it is not today or tomorrow).
+- `Active hours` submenu: `Starts at` 06:00-12:00, `Ends at` 16:00-24:00, and a `Weekends` toggle. Saved; sets `workHours`. Hidden in fast mode.
 - `Remind every` submenu: 20, 30, 45 or 60 min. The choice is saved and sets `reminderInterval`. Hidden in fast mode.
 - `Show on` submenu, only with more than one screen: the screen the duck comes in on. The main screen by default. Saved by screen name; if that screen is not connected, the main screen is used.
 - `Open at login` toggle (`SMAppService.mainApp`)

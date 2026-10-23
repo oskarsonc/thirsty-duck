@@ -33,7 +33,7 @@
 | Asleep | 5 minutes with no mouse or keyboard input | Naps where it is. The clock and the thirst stop until you come back. |
 | Thank you | You click the duck | Happy hop, `thank you! 💛`, and it walks off. The clock starts again. |
 
-The duck comes only between 08:00 and 23:00. A break of 30 minutes or more (idle time and Mac sleep together) starts the clock again from zero.
+By default the duck comes every day between 08:00 and 23:00; change it in **Active hours**. A break of 30 minutes or more (idle time and Mac sleep together) starts the clock again from zero.
 
 ## Install
 
@@ -55,17 +55,19 @@ The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple 
 
 | Item | What it does |
 |---|---|
+| *Next duck in 12 min* | The first line shows when the next duck comes, that the duck is here, or *Off until 08:00*. |
 | **Call the duck now** | Brings the duck at once. Good for a first look. |
 | **Remind every** | 20, 30, 45 or 60 minutes of computer use. |
+| **Active hours** | When the duck may come: **Starts at** 06:00–12:00, **Ends at** 16:00–24:00, and **Weekends** on or off. |
 | **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. Screens are matched by name. |
 | **Open at login** | Starts the duck when you log in. |
 | **Quit** | |
 
-To change the hours or the level times, edit `Sources/DuckCore/Timings.swift` and run `./build.sh` again.
+To change the level times or other numbers, edit `Sources/DuckCore/Timings.swift` and run `./build.sh` again.
 
 ## FAQ
 
-**Does it track me?** No. It reads only how many seconds ago you last used the mouse or keyboard, and where the cursor is. It saves nothing except your two menu choices, and it never uses the network.
+**Does it track me?** No. It reads only how many seconds ago you last used the mouse or keyboard, and where the cursor is. It saves nothing except your menu choices, and it never uses the network.
 
 **Why does the duck sleep?** After 5 minutes with no input, the app takes it that you are away. The clock stops, so you are not punished for a meeting or a coffee.
 
@@ -90,7 +92,7 @@ DUCK_FAST=1 "build/Thirsty Duck.app/Contents/MacOS/ThirstyDuck"   # demo times
 ### Where things are
 
 - `Sources/DuckCore/` is the pure logic, tested with a fake clock. `Duck.swift` is the state machine; every change goes through `Duck.step`. `Timings.swift` has all times, hours, speeds and distances. `Frame.swift` turns the duck into the picture to draw and the tick rate. `Layout.swift` has the panel geometry and the click regions.
-- `Sources/ThirstyDuck/` is the app. It reads the system, sends ticks and clicks to the duck, and draws it. `Settings.swift` keeps the two menu choices.
+- `Sources/ThirstyDuck/` is the app. It reads the system, sends ticks and clicks to the duck, and draws it. `Settings.swift` keeps the menu choices.
 - `SPEC.md` is the full behavior spec.
 
 ## License

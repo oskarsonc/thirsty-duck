@@ -17,6 +17,17 @@ public struct WorkHours: Sendable {
         guard let weekday = parts.weekday, let hour = parts.hour else { return false }
         return weekdays.contains(weekday) && (startHour..<endHour).contains(hour)
     }
+
+    /// The next time the hours start, within a week.
+    public func nextStart(after date: Date) -> Date? {
+        let today = calendar.startOfDay(for: date)
+        for day in 0...7 {
+            guard let start = calendar.date(byAdding: DateComponents(day: day, hour: startHour), to: today),
+                  start > date, weekdays.contains(calendar.component(.weekday, from: start)) else { continue }
+            return start
+        }
+        return nil
+    }
 }
 
 public struct Timings: Sendable {
