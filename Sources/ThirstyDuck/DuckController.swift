@@ -17,6 +17,7 @@ final class DuckController {
     private let debug = ProcessInfo.processInfo.environment["DUCK_DEBUG"] == "1"
     private var logged: (phase: DuckPhase, rate: Double, at: Date, redraws: Int)?
     private var redraws = 0
+    private var pointerMonitors: [Any] = []
 
     init(timings: Timings, time: any TimeSource = SystemTime()) {
         duck = Duck(timings: timings)
@@ -65,7 +66,11 @@ final class DuckController {
 
     private func render(_ now: Date, mouse: CGPoint) {
         guard duck.isVisible else {
-            if panel.isVisible { panel.orderOut(nil) }
+            if panel.isVisible {
+                panel.orderOut(nil)
+                pointerMonitors.forEach(NSEvent.removeMonitor)
+                pointerMonitors = []
+            }
             frame = nil
             return
         }
@@ -81,9 +86,31 @@ final class DuckController {
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
 
         panel.hitRegions = Layout.hitRegions(f, bubble: f.bubble.map { bubbleSize($0.text) })
-        let over = panel.hits(NSPoint(x: mouse.x - origin.x, y: mouse.y - origin.y))
+        routeClicks(mouse)
+        if !panel.isVisible {
+            panel.orderFrontRegardless()
+            watchPointer()
+        }
+    }
+
+    /// The panel takes mouse events only while the cursor is on the duck or its bubble.
+    private func routeClicks(_ mouse: CGPoint) {
+        let o = panel.frame.origin
+        let over = panel.hits(NSPoint(x: mouse.x - o.x, y: mouse.y - o.y))
         if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
-        if !panel.isVisible { panel.orderFrontRegardless() }
+    }
+
+    /// Ticks can be 0.5 s apart, so the cursor also routes clicks as it moves.
+    private func watchPointer() {
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]
+        let route = { [weak self] in self?.routeClicks(NSEvent.mouseLocation) }
+        pointerMonitors = [
+            NSEvent.addGlobalMonitorForEvents(matching: mask) { _ in MainActor.assumeIsolated { route() } },
+            NSEvent.addLocalMonitorForEvents(matching: mask) { event in
+                MainActor.assumeIsolated { route() }
+                return event
+            },
+        ].compactMap { $0 }
     }
 
     /// `DUCK_DEBUG=1` prints each phase or rate change, with the redraws per second since the last line.

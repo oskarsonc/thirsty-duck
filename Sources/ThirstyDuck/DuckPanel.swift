@@ -25,6 +25,7 @@ final class DuckPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = true
+        acceptsMouseMovedEvents = true
         animationBehavior = .none
     }
 
