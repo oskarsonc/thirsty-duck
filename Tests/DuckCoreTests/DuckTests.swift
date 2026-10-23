@@ -78,13 +78,14 @@ let minute: TimeInterval = 60
     #expect(sim.thirst == .follow)
 }
 
-@Test func chillDuckSitsNearTheEdgeOnTheDock() {
+@Test func chillDuckSitsNearTheRightEdgeOnTheDock() {
     var sim = Sim()
     sim.run(45 * minute)
+    #expect(sim.duck.position.x > 1440)
     sim.run(3, every: 1.0 / 60)
     #expect(sim.duck.phase == .waiting(.chill, nil))
-    #expect(sim.duck.position == CGPoint(x: Motion.homeInset, y: 80))
-    #expect(sim.duck.facingRight)
+    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 80))
+    #expect(!sim.duck.facingRight)
 }
 
 @Test func askDuckWalksToTheMiddle() {
@@ -188,6 +189,7 @@ let minute: TimeInterval = 60
     sim.run(2, every: 1.0 / 60)
     #expect(sim.duck.phase == .leaving)
     sim.run(30, every: 1.0 / 60)
+    #expect(sim.duck.position.x > 1440)
     #expect(sim.duck.phase == .hidden)
     sim.run(44 * minute)
     #expect(sim.duck.phase == .hidden)

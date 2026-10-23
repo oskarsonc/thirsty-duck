@@ -166,10 +166,9 @@ public struct Duck: Sendable {
     private mutating func enter(_ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first(where: { $0.frame.contains(s.mouse) }) ?? s.screens.first else { return }
         stage = screen.visible
-        let fromLeft = s.mouse.x - stage.minX < stage.maxX - s.mouse.x
-        position = CGPoint(x: fromLeft ? stage.minX - Motion.offscreen : stage.maxX + Motion.offscreen, y: stage.minY)
-        home = CGPoint(x: fromLeft ? stage.minX + Motion.homeInset : stage.maxX - Motion.homeInset, y: stage.minY)
-        facingRight = fromLeft
+        position = CGPoint(x: stage.maxX + Motion.offscreen, y: stage.minY)
+        home = CGPoint(x: stage.maxX - Motion.homeInset, y: stage.minY)
+        facingRight = false
         shownAt = now
         set(.entering(level), now)
     }
@@ -177,8 +176,7 @@ public struct Duck: Sendable {
     private mutating func leave(_ now: Date, _ s: Sensors) {
         guard phase != .hidden && phase != .leaving else { return }
         let screen = s.screens.first(where: { $0.frame.contains(position) })?.frame ?? stage
-        let toLeft = position.x - screen.minX < screen.maxX - position.x
-        exitX = toLeft ? screen.minX - Motion.offscreen : screen.maxX + Motion.offscreen
+        exitX = screen.maxX + Motion.offscreen
         set(.leaving, now)
     }
 
