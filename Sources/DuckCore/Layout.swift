@@ -10,10 +10,12 @@ public enum Layout {
     public static let bubblePadding = CGSize(width: 10, height: 6)
     public static let bubbleTail: CGFloat = 6
 
-    /// Room the level 4 duck needs around its bottom center: half its 137 pt bubble on each side,
-    /// and the sprite with the 34 pt bubble on top.
-    public static let followHalfWidth: CGFloat = 70
-    public static let followHeight: CGFloat = sprite.height + bubbleGap + 34
+    /// The level 4 bubble, measured with the bubble font.
+    public static let followBubble = CGSize(width: 137, height: 34)
+    /// Room the level 4 duck needs around its bottom center: half its bubble at the top of the pop
+    /// on each side, and the sprite with that bubble on top.
+    public static let followHalfWidth = followBubble.width * Frame.maxBubbleScale / 2
+    public static let followHeight = sprite.height + bubbleGap + followBubble.height * Frame.maxBubbleScale
 
     public static func bubbleSize(text: CGSize) -> CGSize {
         CGSize(width: text.width + 2 * bubblePadding.width,

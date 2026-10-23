@@ -8,6 +8,13 @@ public struct Frame: Equatable, Sendable {
     public var effect: Effect
     public var bubble: Bubble?
     public var bubbleScale: Double
+
+    /// A small spring from 0.4 to 1 that overshoots on the way.
+    static func bubbleScale(age: TimeInterval) -> Double {
+        age < Motion.bubblePop ? 1 - 0.6 * exp(-7 * age) * cos(16 * age) : 1
+    }
+
+    static let maxBubbleScale = stride(from: 0, through: Motion.bubblePop, by: 0.001).map(bubbleScale).max()!
 }
 
 public enum Effect: Equatable, Sendable {
@@ -32,11 +39,8 @@ extension Duck {
         case .happy: .cheer(now.timeIntervalSince(phaseStart))
         default: .none
         }
-        // A small spring from 0.4 to 1.
-        let age = now.timeIntervalSince(bubbleSince)
-        let scale = age < Motion.bubblePop ? 1 - 0.6 * exp(-7 * age) * cos(16 * age) : 1
         return Frame(pose: Pose(duck: self, now: now), facingRight: facingRight, effect: effect,
-                     bubble: bubble, bubbleScale: scale)
+                     bubble: bubble, bubbleScale: Frame.bubbleScale(age: now.timeIntervalSince(bubbleSince)))
     }
 
     /// Ticks per second the app needs to show the duck smoothly.

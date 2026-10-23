@@ -132,12 +132,30 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     sim.run(60 * minute)
     sim.sensors.mouse = mouse
     sim.run(30, every: 1.0 / 60)
+    #expect(sim.duck.phase.isWaiting(.follow))
+    // Fall asleep and wake, so the bubble pops in again, and check the whole pop.
+    sim.run(Timings.normal.awayAfter + 1, idle: true)
+    sim.run(1.0 / 30)
     let screen = sim.sensors.screens.first { $0.frame.contains(mouse) }!.frame
     let p = sim.duck.position
-    let box = CGRect(x: p.x - Layout.followHalfWidth, y: p.y,
-                     width: 2 * Layout.followHalfWidth, height: Layout.followHeight)
+    for k in 0...70 {
+        let frame = sim.duck.frame(at: sim.time.now + Double(k) / 100)
+        #expect(frame.bubble != nil)
+        let bubble = Layout.hitRegions(frame, bubble: Layout.followBubble).last!
+            .offsetBy(dx: p.x - Layout.panel.width / 2, dy: p.y - Layout.ground)
+        #expect(screen.contains(bubble), "\(bubble) is not inside \(screen) at scale \(frame.bubbleScale)")
+    }
+}
+
+@Test func followDuckKeepsItsFeetOnAScreenSmallerThanItsBox() {
+    var sim = Sim()
+    let tiny = CGRect(x: -300, y: 400, width: 60, height: 80)
+    sim.sensors.screens.append(Screen(frame: tiny, visible: tiny))
+    sim.run(60 * minute)
+    sim.sensors.mouse = CGPoint(x: -270, y: 440)
+    sim.run(30, every: 1.0 / 60)
     #expect(sim.duck.phase.isWaiting(.follow))
-    #expect(screen.contains(box), "\(box) is not inside \(screen)")
+    #expect(tiny.contains(sim.duck.position), "\(sim.duck.position) is not inside \(tiny)")
 }
 
 @Test func awayTimeDoesNotCount() {

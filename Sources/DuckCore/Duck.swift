@@ -224,8 +224,10 @@ public struct Duck: Sendable {
             if x - half < screen.minX || x + half > screen.maxX {
                 x = m.x - side * Motion.followGap
             }
-            return CGPoint(x: min(max(x, screen.minX + half), screen.maxX - half),
-                           y: min(max(m.y - Motion.followDrop, screen.minY), screen.maxY - Layout.followHeight))
+            // A screen too small for the box still keeps the duck's feet: centered, or on the bottom.
+            x = screen.width < 2 * half ? screen.midX : min(max(x, screen.minX + half), screen.maxX - half)
+            let y = max(min(m.y - Motion.followDrop, screen.maxY - Layout.followHeight), screen.minY)
+            return CGPoint(x: x, y: y)
         }
     }
 
