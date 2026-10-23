@@ -20,12 +20,20 @@ public enum Layout {
                height: text.height + 2 * bubblePadding.height + bubbleTail)
     }
 
-    /// The drawn sprite and bubble. Clicks anywhere else in the panel go to the app below.
-    public static func hitRegions(lift: CGFloat, jitter: CGFloat, bubble: CGSize?) -> [CGRect] {
-        let duck = CGRect(x: (panel.width - sprite.width) / 2 + jitter, y: ground + lift,
-                          width: sprite.width, height: sprite.height)
+    /// The sprite and bubble as `DuckView` draws `frame`. Clicks anywhere else in the panel go to the app below.
+    public static func hitRegions(_ frame: Frame, bubble: CGSize?) -> [CGRect] {
+        let pose = frame.pose
+        let foot = CGPoint(x: panel.width / 2 + pose.jitter, y: ground + pose.lift)
+        // SwiftUI turns a positive tilt clockwise on screen, then mirrors. Mirroring the
+        // symmetric box turns the tilt the other way.
+        let angle = (pose.mirrored ? 1 : -1) * pose.tilt * .pi / 180
+        let turn = CGAffineTransform(translationX: foot.x, y: foot.y).rotated(by: angle)
+            .translatedBy(x: -foot.x, y: -foot.y)
+        let duck = CGRect(x: foot.x - sprite.width / 2, y: foot.y, width: sprite.width, height: sprite.height)
+            .applying(turn)
         guard let bubble else { return [duck] }
-        return [duck, CGRect(x: (panel.width - bubble.width) / 2, y: ground + sprite.height + bubbleGap,
-                             width: bubble.width, height: bubble.height)]
+        let size = CGSize(width: bubble.width * frame.bubbleScale, height: bubble.height * frame.bubbleScale)
+        return [duck, CGRect(x: (panel.width - size.width) / 2, y: ground + sprite.height + bubbleGap,
+                             width: size.width, height: size.height)]
     }
 }

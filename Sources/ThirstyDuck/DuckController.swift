@@ -80,8 +80,7 @@ final class DuckController {
         let origin = NSPoint(x: (p.x - Layout.panel.width / 2).rounded(), y: (p.y - Layout.ground).rounded())
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
 
-        panel.hitRegions = Layout.hitRegions(lift: f.pose.lift, jitter: f.pose.jitter,
-                                             bubble: f.bubble.map { bubbleSize($0.text) })
+        panel.hitRegions = Layout.hitRegions(f, bubble: f.bubble.map { bubbleSize($0.text) })
         let over = panel.hits(NSPoint(x: mouse.x - origin.x, y: mouse.y - origin.y))
         if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
         if !panel.isVisible { panel.orderFrontRegardless() }
