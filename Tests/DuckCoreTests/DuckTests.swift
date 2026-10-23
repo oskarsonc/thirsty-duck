@@ -259,6 +259,24 @@ let minute: TimeInterval = 60
     #expect(sim.duck.phase == .entering(.chill))
 }
 
+@Test func fastLongBreakAcrossMacSleepResets() {
+    var sim = Sim(timings: .fast)
+    sim.run(20)
+    sim.sleep(40)
+    #expect(sim.duck.workTime == 0)
+    sim.run(40)
+    #expect(sim.duck.phase == .hidden)
+}
+
+@Test func fastLateTickAfterALongBreakResets() {
+    var sim = Sim(timings: .fast)
+    sim.run(20)
+    sim.run(40, every: 40)
+    #expect(sim.duck.workTime == 0)
+    sim.run(40)
+    #expect(sim.duck.phase == .hidden)
+}
+
 extension DuckPhase {
     func isWaiting(_ t: Thirst) -> Bool {
         if case .waiting(t, _) = self { return true }

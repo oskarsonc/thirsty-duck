@@ -26,8 +26,6 @@ public struct Timings: Sendable {
     public var longBreak: TimeInterval
     /// `nil` means always work time.
     public var workHours: WorkHours?
-    /// A wall-clock gap this long between two ticks means the Mac slept.
-    public var sleepGap: TimeInterval = 60
 
     public static let normal = Timings(
         reminderInterval: 45 * 60,
