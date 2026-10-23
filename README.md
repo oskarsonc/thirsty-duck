@@ -48,6 +48,10 @@ cp -R "build/Thirsty Duck.app" ~/Applications/
 open ~/Applications/"Thirsty Duck.app"
 ```
 
+Or paste this into your coding agent:
+
+> Clone https://github.com/oskarsonc/thirsty-duck, run `./build.sh`, copy `build/Thirsty Duck.app` to `~/Applications` (create the folder if needed), and open it.
+
 A water drop appears in the menu bar. Select **Open at login** there if you want the duck every day.
 
 The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple Silicon.
