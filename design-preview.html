@@ -1,0 +1,300 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: var(--font-sans, system-ui); color: var(--foreground); }
+  .wrap { width: 100%; }
+  h3 { margin: 0 0 4px; font-size: 15px; }
+  p.sub { margin: 0 0 14px; color: var(--muted-foreground); font-size: 13px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; text-align: center; cursor: pointer; transition: border-color .15s, transform .15s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .card .name { font-weight: 600; font-size: 14px; margin-top: 6px; }
+  .card .desc { font-size: 12px; color: var(--muted-foreground); }
+  .card svg { width: 110px; height: 110px; }
+
+  .states { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .state { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; position: relative; }
+  .state .lbl { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+  .state .duck-holder { position: relative; height: 130px; display: flex; align-items: flex-end; justify-content: center; }
+  .state svg { width: 96px; height: 96px; }
+
+  .stage {
+    position: relative; height: 340px; overflow: hidden; border-radius: var(--radius);
+    border: 1px solid var(--border); cursor: crosshair;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--info, #3b82f6) 10%, transparent), transparent 70%),
+      var(--card);
+  }
+  .stage .hint { position: absolute; left: 16px; top: 14px; font-size: 12px; color: var(--muted-foreground); pointer-events: none; }
+  .actor { position: absolute; width: 84px; height: 84px; left: 0; top: 0; cursor: pointer; will-change: transform; }
+  .actor .flip { width: 100%; height: 100%; transition: transform .12s; }
+  .actor.left .flip { transform: scaleX(-1); }
+  .actor svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* speech bubble */
+  .bubble {
+    position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, 6px) scale(.4);
+    background: #fff; color: #1f2937; font-weight: 700; font-size: 15px; letter-spacing: .2px;
+    padding: 7px 12px; border-radius: 14px; white-space: nowrap; opacity: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); transition: transform .25s cubic-bezier(.3,1.6,.5,1), opacity .2s;
+    pointer-events: none; font-family: ui-rounded, "SF Pro Rounded", system-ui;
+  }
+  .bubble::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+    border: 7px solid transparent; border-top-color: #fff; }
+  .bubble.show { opacity: 1; transform: translate(-50%, -2px) scale(1); }
+  .static-bubble { opacity: 1; transform: translate(-50%, -2px) scale(1); }
+
+  .heart { position: absolute; font-size: 16px; pointer-events: none; animation: rise 1s ease-out forwards; }
+  @keyframes rise { from { opacity: 1; transform: translate(-50%, 0) scale(.6); } to { opacity: 0; transform: translate(-50%, -46px) scale(1.2); } }
+
+  /* animation parts */
+  .bodyg { transform-box: fill-box; transform-origin: 50% 100%; }
+  .footL, .footR { transform-box: fill-box; transform-origin: 50% 0%; }
+  .walking .bodyg { animation: bob .32s ease-in-out infinite alternate; }
+  .walking .footL { animation: stepA .32s ease-in-out infinite alternate; }
+  .walking .footR { animation: stepB .32s ease-in-out infinite alternate; }
+  .idle .bodyg { animation: breathe 1.8s ease-in-out infinite; }
+  .talk .bodyg { animation: hopTalk .9s ease-in-out infinite; }
+  .yay .bodyg { animation: jump .45s cubic-bezier(.3,1.4,.5,1) 2; }
+  @keyframes bob { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-3px) rotate(3deg); } }
+  @keyframes stepA { from { transform: translateY(-3px) rotate(-12deg); } to { transform: translateY(0) rotate(8deg); } }
+  @keyframes stepB { from { transform: translateY(0) rotate(8deg); } to { transform: translateY(-3px) rotate(-12deg); } }
+  @keyframes breathe { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.02,.98); } }
+  @keyframes hopTalk { 0%,60%,100% { transform: translateY(0); } 75% { transform: translateY(-5px); } }
+  @keyframes jump { 0%,100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-14px) scale(.96,1.05); } }
+
+  .eyes-happy { display: none; }
+  .happy .eyes-open { display: none; }
+  .happy .eyes-happy { display: inline; }
+  .blink .eyes-open { animation: blink 3.5s infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes blink { 0%,94%,100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+
+  /* pixel duck feet frames */
+  .px-f2 { display: none; }
+  .walking .px-f1 { animation: pxA .32s steps(1) infinite; }
+  .walking .px-f2 { display: inline; animation: pxB .32s steps(1) infinite; }
+  @keyframes pxA { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes pxB { 0% { opacity: 0; } 50% { opacity: 1; } }
+
+  @media (max-width: 520px) {
+    .cards, .states { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h3>1 · Pick a duck</h3>
+  <p class="sub">Click a card. The rows below change to that duck.</p>
+  <div class="cards" id="cards"></div>
+
+  <h3>2 · What it does</h3>
+  <p class="sub">Three states only: walk in → say "drink!" → happy hop, then waddle away.</p>
+  <div class="states" id="states"></div>
+
+  <h3>3 · Try it</h3>
+  <p class="sub">Move your mouse in the box. The duck walks to your cursor. Click the duck to send it away. It comes back after 3 seconds (in the real app: after your interval).</p>
+  <div class="stage" id="stage"><div class="hint">your screen</div></div>
+</div>
+
+<script>
+// ---------- Duck drawings (viewBox 0 0 120 120, facing right) ----------
+const DUCKS = {
+  duckling: {
+    name: "Duckling", desc: "Round, yellow, big eyes",
+    svg: () => `
+<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="112" rx="30" ry="5" fill="rgba(0,0,0,.13)"/>
+  <g class="footL"><ellipse cx="50" cy="106" rx="9" ry="4.5" fill="#FF922B"/></g>
+  <g class="footR"><ellipse cx="72" cy="106" rx="9" ry="4.5" fill="#FF922B"/></g>
+  <g class="bodyg">
+    <path d="M28 70 q-12 -4 -10 -16 q8 6 16 8 z" fill="#FCC419"/>
+    <ellipse cx="58" cy="80" rx="34" ry="26" fill="#FFD43B"/>
+    <ellipse cx="64" cy="88" rx="22" ry="14" fill="#FFE58A"/>
+    <circle cx="72" cy="46" r="25" fill="#FFD43B"/>
+    <path d="M69 22 q0 -11 7 -10 M74 22 q5 -9 11 -5" stroke="#FCC419" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="48" cy="80" rx="15" ry="10" transform="rotate(-18 48 80)" fill="#FCC419"/>
+    <path d="M91 44 q14 1 14 7 q0 6 -14 6 q-4 -6 0 -13 z" fill="#FF922B"/>
+    <path d="M92 51 q7 1 12 0" stroke="#E8590C" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <g class="eyes-open"><circle cx="80" cy="42" r="5.5" fill="#2B2B2B"/><circle cx="82" cy="40" r="2" fill="#fff"/></g>
+    <path class="eyes-happy" d="M75 43 q5 -6 10 0" stroke="#2B2B2B" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse cx="83" cy="54" rx="5.5" ry="3.2" fill="#FF8FA3" opacity=".65"/>
+  </g>
+</svg>`
+  },
+  white: {
+    name: "Classic duck", desc: "White, orange beak, a bit taller",
+    svg: () => `
+<svg viewBox="0 0 120 120">
+  <ellipse cx="58" cy="112" rx="32" ry="5" fill="rgba(0,0,0,.13)"/>
+  <g class="footL"><path d="M44 102 l-6 6 h14 z" fill="#FF922B" stroke="#FF922B" stroke-width="3" stroke-linejoin="round"/></g>
+  <g class="footR"><path d="M68 102 l-6 6 h14 z" fill="#FF922B" stroke="#FF922B" stroke-width="3" stroke-linejoin="round"/></g>
+  <g class="bodyg">
+    <path d="M22 76 l-8 -18 l20 10 z" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5" stroke-linejoin="round"/>
+    <ellipse cx="56" cy="82" rx="36" ry="22" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <path d="M66 70 q-4 -14 6 -26 l16 6 q-6 10 -2 22 z" fill="#FFFFFF"/>
+    <circle cx="78" cy="42" r="20" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <path d="M66 72 q-3 -12 4 -22" stroke="#FFFFFF" stroke-width="10" fill="none"/>
+    <path d="M38 80 q14 -12 30 0 q-14 10 -30 0 z" fill="#E2E8F0"/>
+    <path d="M95 40 q15 0 15 6 q-7 7 -17 4 z" fill="#FF922B"/>
+    <g class="eyes-open"><circle cx="84" cy="38" r="4" fill="#2B2B2B"/><circle cx="85.5" cy="36.5" r="1.4" fill="#fff"/></g>
+    <path class="eyes-happy" d="M80 39 q4 -5 8 0" stroke="#2B2B2B" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="86" cy="49" rx="4.5" ry="2.6" fill="#FF8FA3" opacity=".6"/>
+  </g>
+</svg>`
+  },
+  pixel: {
+    name: "Pixel duckling", desc: "Retro pixel art, like vscode-pets",
+    svg: () => {
+      const C = { Y: "#FFD43B", D: "#FAB005", O: "#FF922B", K: "#2B2B2B", W: "#FFFFFF", P: "#FF8FA3" };
+      const map = [
+        "......YYYY......",
+        ".....YYYYYY.....",
+        ".....YYYWKY.....",
+        ".....YYYKKYOOO..",
+        ".....YYPYYYOOO..",
+        "......YYYYY.....",
+        ".Y...YYYYYY.....",
+        ".YY.YYYYYYYY....",
+        ".YYYYYDDDYYYY...",
+        ".YYYYDDDDYYYY...",
+        "..YYYYYYYYYYY...",
+        "...YYYYYYYYY....",
+      ];
+      const s = 6.5, ox = 8, oy = 14;
+      let body = "", eyesOpen = "", eyesHappy = "";
+      map.forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch === ".") return;
+        const r = `<rect x="${ox + x * s}" y="${oy + y * s}" width="${s + .3}" height="${s + .3}" fill="${C[ch]}"/>`;
+        if ((y === 2 || y === 3) && (x === 8 || x === 9)) eyesOpen += r; else body += r;
+      }));
+      [[2,8],[2,9],[3,8],[3,9]].forEach(([y,x]) => eyesHappy += `<rect x="${ox + x * s}" y="${oy + y * s}" width="${s + .3}" height="${s + .3}" fill="${C.Y}"/>`);
+      [[3,7],[2,8],[2,9],[3,10]].forEach(([y,x]) => eyesHappy += `<rect x="${ox + x * s}" y="${oy + y * s}" width="${s + .3}" height="${s + .3}" fill="#2B2B2B"/>`);
+      const fy = oy + 12 * s;
+      const px = (x, y) => `<rect x="${ox + x * s}" y="${fy + y * s}" width="${s + .3}" height="${s + .3}" fill="${C.O}"/>`;
+      const f1 = px(5,0)+px(6,0)+px(4,1)+px(5,1)+px(6,1)+px(9,0)+px(10,0)+px(8,1)+px(9,1)+px(10,1);
+      const f2 = px(5,0)+px(6,0)+px(5,1)+px(6,1)+px(7,1)+px(9,0)+px(10,0)+px(9,1)+px(10,1);
+      return `
+<svg viewBox="0 0 120 120" shape-rendering="crispEdges">
+  <rect x="30" y="${fy + 2 * s}" width="64" height="4" fill="rgba(0,0,0,.13)"/>
+  <g class="px-f1">${f1}</g><g class="px-f2">${f2}</g>
+  <g class="bodyg">${body}<g class="eyes-open">${eyesOpen}</g><g class="eyes-happy">${eyesHappy}</g></g>
+</svg>`;
+    }
+  }
+};
+
+let current = "duckling";
+const cards = document.getElementById("cards");
+const states = document.getElementById("states");
+
+function renderCards() {
+  cards.innerHTML = "";
+  for (const [key, d] of Object.entries(DUCKS)) {
+    const el = document.createElement("div");
+    el.className = "card" + (key === current ? " sel" : "");
+    el.innerHTML = `<div class="idle blink">${d.svg()}</div><div class="name">${d.name}</div><div class="desc">${d.desc}</div>`;
+    el.onclick = () => { current = key; renderCards(); renderStates(); actor.setDuck(); };
+    cards.appendChild(el);
+  }
+}
+
+function renderStates() {
+  const d = DUCKS[current];
+  states.innerHTML = `
+    <div class="state"><div class="duck-holder"><div class="walking">${d.svg()}</div></div><div class="lbl">1. Walks in from the edge</div></div>
+    <div class="state"><div class="duck-holder"><div style="position:relative" class="talk blink"><div class="bubble static-bubble">drink! 💧</div>${d.svg()}</div></div><div class="lbl">2. Stops at your cursor</div></div>
+    <div class="state"><div class="duck-holder"><div class="happy idle">${d.svg()}</div></div><div class="lbl">3. Clicked: happy, waddles off</div></div>`;
+}
+
+// ---------- Interactive stage ----------
+const stage = document.getElementById("stage");
+const actor = (() => {
+  const el = document.createElement("div");
+  el.className = "actor";
+  el.innerHTML = `<div class="bubble">drink! 💧</div><div class="flip"></div>`;
+  stage.appendChild(el);
+  const flip = el.querySelector(".flip"), bubble = el.querySelector(".bubble");
+  const W = 84, H = 84, SPEED = 140;
+  let x = -W, y = 200, state = "wait", mouse = null, exitX = 0, last = performance.now();
+
+  function setDuck() { flip.innerHTML = DUCKS[current].svg(); }
+  function setMode(m) { flip.className = "flip " + m; }
+  function place() { el.style.transform = `translate(${x}px, ${y}px)`; }
+
+  function enter() {
+    const w = stage.clientWidth;
+    const fromLeft = Math.random() < .5;
+    x = fromLeft ? -W : w;
+    y = 140 + Math.random() * (stage.clientHeight - H - 160);
+    state = "enter"; setMode("walking"); place();
+  }
+  function target() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    const m = mouse || { x: w / 2, y: h / 2 };
+    // stand just beside the cursor, feet below it
+    const side = m.x > x + W / 2 ? -1 : 1;
+    return { x: Math.min(Math.max(m.x - W / 2 + side * 46, -10), w - W + 10), y: Math.min(Math.max(m.y - H / 2, 40), h - H - 4) };
+  }
+  function tick(now) {
+    const dt = Math.min((now - last) / 1000, .05); last = now;
+    if (state === "enter" || state === "arrived") {
+      const t = target(), dx = t.x - x, dy = t.y - y, dist = Math.hypot(dx, dy);
+      if (dist > 6) {
+        if (state === "arrived" && dist > 40) { state = "enter"; bubble.classList.remove("show"); setMode("walking"); }
+        if (state === "enter") {
+          x += dx / dist * SPEED * dt; y += dy / dist * SPEED * dt;
+          el.classList.toggle("left", dx < 0);
+        }
+      } else if (state === "enter") {
+        state = "arrived"; setMode("talk blink"); bubble.classList.add("show");
+        const m = mouse || { x: stage.clientWidth / 2 };
+        el.classList.toggle("left", m.x < x + W / 2);
+      }
+    } else if (state === "exit") {
+      const dx = exitX - x;
+      x += Math.sign(dx) * SPEED * 1.3 * dt;
+      if (Math.abs(dx) < 4) { state = "wait"; x = -999; setTimeout(enter, 3000); }
+    }
+    place();
+    requestAnimationFrame(tick);
+  }
+  el.addEventListener("click", e => {
+    e.stopPropagation();
+    if (state !== "arrived" && state !== "enter") return;
+    state = "yay"; bubble.classList.remove("show"); setMode("happy yay");
+    for (let i = 0; i < 3; i++) setTimeout(() => {
+      const h = document.createElement("div");
+      h.className = "heart"; h.textContent = i === 1 ? "💧" : "💛";
+      h.style.left = (x + W / 2 + (i - 1) * 18) + "px"; h.style.top = (y + 4) + "px";
+      stage.appendChild(h); setTimeout(() => h.remove(), 1000);
+    }, i * 120);
+    setTimeout(() => {
+      const w = stage.clientWidth;
+      exitX = x + W / 2 < w / 2 ? -W - 10 : w + 10;
+      el.classList.toggle("left", exitX < x);
+      state = "exit"; setMode("happy walking");
+    }, 900);
+  });
+  stage.addEventListener("mousemove", e => {
+    const r = stage.getBoundingClientRect();
+    mouse = { x: e.clientX - r.left, y: e.clientY - r.top };
+  });
+  setDuck(); place();
+  setTimeout(enter, 400);
+  requestAnimationFrame(tick);
+  return { setDuck };
+})();
+
+renderCards();
+renderStates();
+</script>
+</body>
+</html>
