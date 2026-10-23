@@ -167,6 +167,23 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     }
 }
 
+@Test func followDuckAndBubbleStayUnderTheMenuBar() {
+    var sim = Sim()
+    let menuBarTop = sim.sensors.screens[0].visible.maxY
+    sim.run(60 * minute)
+    sim.sensors.mouse = CGPoint(x: 700, y: 895)
+    sim.run(30, every: 1.0 / 60)
+    #expect(sim.duck.phase.isWaiting(.follow))
+    let p = sim.duck.position
+    for k in 0...70 {
+        let frame = sim.duck.frame(at: sim.time.now + Double(k) / 100)
+        for region in Layout.hitRegions(frame, bubble: Layout.followBubble) {
+            let r = region.offsetBy(dx: p.x - Layout.panel.width / 2, dy: p.y - Layout.ground)
+            #expect(r.maxY <= menuBarTop, "\(r) covers the menu bar at scale \(frame.bubbleScale)")
+        }
+    }
+}
+
 @Test func followDuckKeepsItsFeetOnAScreenSmallerThanItsBox() {
     var sim = Sim()
     let tiny = CGRect(x: -300, y: 400, width: 60, height: 80)

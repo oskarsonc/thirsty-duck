@@ -217,7 +217,10 @@ public struct Duck: Sendable {
         case .thirsty: return position
         case .follow:
             let m = s.mouse
-            let screen = s.screens.first(where: { $0.frame.contains(m) })?.frame ?? stage
+            let found = s.screens.first(where: { $0.frame.contains(m) })
+            let screen = found?.frame ?? stage
+            // Stay under the menu bar, where the screen has one.
+            let top = found?.visible.maxY ?? stage.maxY
             let half = Layout.followHalfWidth
             let side: CGFloat = position.x < m.x ? -1 : 1
             var x = m.x + side * Motion.followGap
@@ -226,7 +229,7 @@ public struct Duck: Sendable {
             }
             // A screen too small for the box still keeps the duck's feet: centered, or on the bottom.
             x = screen.width < 2 * half ? screen.midX : min(max(x, screen.minX + half), screen.maxX - half)
-            let y = max(min(m.y - Motion.followDrop, screen.maxY - Layout.followHeight), screen.minY)
+            let y = max(min(m.y - Motion.followDrop, top - Layout.followHeight), screen.minY)
             return CGPoint(x: x, y: y)
         }
     }
