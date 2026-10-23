@@ -61,6 +61,8 @@ public enum Motion {
     public static let followGap: CGFloat = 60
     public static let followDrop: CGFloat = 35
     public static let followSlack: CGFloat = 30
+    /// A waiting follow duck walks again only when the cursor is farther than this from its feet.
+    public static let followLeash: CGFloat = 120
     public static let happyDuration: TimeInterval = 1.3
     public static let bubblePop: TimeInterval = 0.7
     public static let chillBubbleCycle: TimeInterval = 9

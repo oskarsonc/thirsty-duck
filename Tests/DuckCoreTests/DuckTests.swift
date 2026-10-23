@@ -167,6 +167,22 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     }
 }
 
+@Test func followDuckWaitsWhenTheCursorComesToClickIt() {
+    var sim = Sim()
+    sim.run(60 * minute)
+    sim.sensors.mouse = CGPoint(x: 1200, y: 600)
+    sim.run(10, every: 1.0 / 60)
+    let spot = sim.duck.position
+    for k in 1...20 {
+        sim.sensors.mouse = CGPoint(x: 1200 - CGFloat(k) * 3, y: 600 - CGFloat(k) * 1.5)
+        sim.run(0.1, every: 1.0 / 60)
+        #expect(sim.duck.position == spot)
+    }
+    sim.sensors.mouse = CGPoint(x: 300, y: 600)
+    sim.run(10, every: 1.0 / 60)
+    #expect(sim.duck.position == CGPoint(x: 300 + Motion.followGap, y: 600 - Motion.followDrop))
+}
+
 @Test func followDuckAndBubbleStayUnderTheMenuBar() {
     var sim = Sim()
     let menuBarTop = sim.sensors.screens[0].visible.maxY

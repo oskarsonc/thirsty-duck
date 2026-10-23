@@ -161,7 +161,8 @@ public struct Duck: Sendable {
             if walk(to: target(t, s), speed: speed, dt: dt) { arrive(t, now, s) }
         case .waiting(let t, let trick):
             if t == .follow {
-                if distance(position, target(.follow, s)) > Motion.followSlack {
+                // Only a cursor that moves away pulls the duck along, so the user can reach it to click.
+                if distance(position, s.mouse) > Motion.followLeash && distance(position, target(.follow, s)) > Motion.followSlack {
                     set(.moving(.follow), now)
                     return
                 }
