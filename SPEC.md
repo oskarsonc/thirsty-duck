@@ -51,26 +51,26 @@ The duck comes once every `reminderInterval` of active work time. Then thirst go
 
 | Level | Where the duck is | What it does | Bubble |
 |---|---|---|---|
-| 1 Chill | Walks in from the nearest side edge along the bottom of the screen (on top of the Dock, `visibleFrame.minY`) and sits about 140 pt from that edge. | Chills. Every few seconds it does one small trick, picked at random so it changes: blink, look the other way (flip), hop, wiggle, peck (lean forward), short stroll left or right. | Shows `💧?` now and then, for 3 s. |
+| 1 Chill | Walks in from the right edge along the bottom of the screen (on top of the Dock, `visibleFrame.minY`) and sits about 140 pt from that edge. | Chills. Every few seconds it does one small trick, picked at random so it changes: blink, look the other way (flip), hop, wiggle, peck (lean forward), short stroll left or right. | Shows `💧?` now and then, for 3 s. |
 | 2 Ask | Walks along the bottom toward the middle of the screen. | Tricks are more about asking: hop, wiggle, hop-hop. | `drink! 💧`, always shown. |
 | 3 Thirsty | Stays at the bottom. | Sweat drops, shakes now and then, droopy (no hops). | `so thirsty… 💧💧`, red style. |
-| 4 Follow | Leaves the bottom and follows the mouse cursor anywhere on any screen. It stops about 60 pt beside the cursor so it never covers what the user points at, and faces the cursor. | Walks (feet and bob) while moving, shakes when it stops. Sweat drops. | `DRINK WATER! 🥵` |
+| 4 Follow | Leaves the bottom and follows the mouse cursor anywhere on any screen. It stops about 60 pt beside the cursor so it never covers what the user points at, and faces the cursor. The duck and its bubble, at the top of the pop, stay on the cursor's screen. On a screen smaller than that, the duck's feet stay on it. | Walks (feet and bob) while moving, shakes when it stops. Sweat drops. | `DRINK WATER! 🥵` |
 
 Click on the duck in any level means "I drank":
 - Happy eyes, hop twice, `💧 💛 ✨` float up, bubble `thank you! 💛`.
-- Then it walks to the nearest side edge and leaves the screen.
+- Then it walks off by the right edge of its screen.
 - The reminder timer starts again from zero.
 
-Only the duck and its bubble take mouse clicks. Everything else on the screen must stay fully usable. The duck never takes keyboard focus and never activates the app.
+Only the duck and its bubble take mouse clicks, where they are drawn: the bubble at its current pop scale, and the box of the sprite turned by its current tilt. The panel takes mouse events only while the cursor is on them. It checks on each tick and on each mouse move or drag, so clicks route right between slow ticks. Everything else on the screen must stay fully usable. The duck never takes keyboard focus and never activates the app.
 
 ## Away and off-hours
 
 The timer counts only time when the user is at the Mac and inside work hours.
 
 - Away: no mouse or keyboard input for `awayAfter` (5 min). Use `CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)`, which needs no permission. Locked screen and display sleep also show as no input.
-- Mac sleep: a tick that sees a wall-clock gap larger than 60 s counts that gap as away time.
+- Mac sleep: the app gets the `NSWorkspace` sleep and wake notifications. Sleep time is never work. The lid, a key or the mouse wakes the Mac, so a wake after a sleep counts as input. A wake with no sleep before it is a plain tick, and a second sleep changes nothing.
 - While away: the timer pauses. If the duck is on screen, it falls asleep where it is (closed eyes, `💤`, no bubble), and thirst does not go up. When the user comes back, it wakes and goes on at the same level.
-- Long break: after away time of `longBreak` (30 min) or more, count the break as a fresh start. Hide the duck if it is up, and start the timer from zero.
+- Long break: a break runs from the last input to the next one. Input is what the idle counter shows, a click on the duck, `Call the duck now`, or a wake. A break of `longBreak` (30 min) or more, idle time and Mac sleep together, is a fresh start. Hide the duck if it is up, and start the timer from zero.
 - Work hours: Monday to Friday, 08:00 to 18:00 local time (constants). Outside work hours the duck does not come. If it is up when work hours end, it walks away. The timer starts from zero at the next work start.
 - Fullscreen apps: the duck shows over them too (all Spaces, fullscreen auxiliary).
 
@@ -90,7 +90,7 @@ workHours        = 08:00-18:00
 ## Menu bar
 
 A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
-- `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user)
+- `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user). It first ends any break, then counts as input.
 - `Open at login` toggle (`SMAppService.mainApp`)
 - `Quit`
 
@@ -101,7 +101,7 @@ No Dock icon (`LSUIElement`).
 - Swift 6, SwiftUI for drawing, AppKit for the window. Swift Package Manager executable, built with Command Line Tools (no Xcode project). The machine has Swift 6.4 and macOS 27 SDK, Apple Silicon.
 - A `build.sh` that builds release and makes `build/Thirsty Duck.app` with an `Info.plist` (`LSUIElement=true`, bundle id `dev.oskar.thirstyduck`, minimum macOS 14), and ad-hoc signs it (`codesign -s -`).
 - Window: one small borderless, non-activating, transparent `NSPanel` that holds the duck and its bubble and moves with the duck (about 240 x 200 pt). Level `.statusBar` or above normal windows, `collectionBehavior` `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]`, no shadow, `hidesOnDeactivate = false`. Clicks on transparent parts must pass through to the app below. Hide the window when the duck is away.
-- One 60 Hz tick (a `Timer` on the main run loop in common modes, or `CADisplayLink` from the screen) drives everything. The CPU use must be close to zero while the duck is hidden: stop the 60 Hz tick when hidden and use a 1 s timer for the reminder clock.
+- One `Timer` on the main run loop in common modes drives everything. The duck says how often it needs a tick (`Duck.tickRate`): 30 Hz while it walks, hops, shakes, pops a bubble or is happy, 10 Hz while it sits, blinks or sweats, 2 Hz asleep, and 1 Hz hidden. The app redraws only when the picture (`Duck.frame`) changes. The CPU use must be close to zero while the duck is hidden.
 - Model the duck as a state machine, not as booleans. Suggested shape:
 
 ```swift
