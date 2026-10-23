@@ -318,6 +318,17 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(sim.thirst == .ask)
 }
 
+@Test func callNowAfterALongBreakStays() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    sim.run(30 * minute, idle: true)
+    sim.sensors.idleSeconds = 0
+    sim.send(.callNow)
+    #expect(sim.duck.phase == .entering(.chill))
+    sim.run(1.0 / 30)
+    #expect(sim.duck.phase == .entering(.chill))
+}
+
 @Test func fastTimingsDivideByAMinuteAndIgnoreWorkHours() {
     let fast = Timings.from(environment: ["DUCK_FAST": "1"])
     #expect(fast.reminderInterval == 45)

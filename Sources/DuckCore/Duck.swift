@@ -97,6 +97,7 @@ public struct Duck: Sendable {
     }
 
     private mutating func callNow(_ now: Date, _ s: Sensors) {
+        tick(now, s, inputAt: now)
         guard phase == .hidden else { return }
         workTime = timings.reminderInterval
         enter(now, s)
