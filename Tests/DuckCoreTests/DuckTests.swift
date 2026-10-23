@@ -41,11 +41,12 @@ struct Sim {
         }
     }
 
-    /// Sleeps the Mac for `seconds` and wakes it with a key press.
-    mutating func sleep(_ seconds: TimeInterval) {
+    /// Sleeps the Mac for `seconds` and wakes it. The idle counter either restarts at the wake
+    /// or keeps counting through the sleep; the duck must not depend on which.
+    mutating func sleep(_ seconds: TimeInterval, idleCounterRuns: Bool = false) {
         send(.sleep)
         time.now += seconds
-        sensors.idleSeconds = 0
+        sensors.idleSeconds = idleCounterRuns ? sensors.idleSeconds + seconds : 0
         send(.wake)
     }
 
@@ -185,11 +186,12 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     #expect(sim.duck.workTime == 0)
 }
 
-@Test func idleThenMacSleepIsOneLongBreak() {
+@Test(arguments: [false, true])
+func idleThenMacSleepIsOneLongBreak(idleCounterRuns: Bool) {
     var sim = Sim()
     sim.run(20 * minute)
     sim.run(4 * minute, idle: true)
-    sim.sleep(27 * minute)
+    sim.sleep(27 * minute, idleCounterRuns: idleCounterRuns)
     #expect(sim.duck.workTime == 0)
     #expect(sim.duck.phase == .hidden)
     sim.run(44 * minute)
@@ -205,6 +207,54 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     #expect(sim.duck.workTime <= 21 * minute)
     sim.run(25 * minute)
     #expect(sim.duck.isVisible)
+}
+
+@Test(arguments: [false, true])
+func inputRightAfterAWakeCounts(idleCounterRuns: Bool) {
+    var sim = Sim()
+    sim.run(46 * minute)
+    sim.sleep(10 * minute, idleCounterRuns: idleCounterRuns)
+    let before = sim.duck.workTime
+    sim.run(1)
+    sim.run(5, idle: true)
+    #expect(!sim.duck.phase.isAsleep, "the owner is reading, not away")
+    #expect(sim.duck.workTime == before + 6)
+}
+
+@Test(arguments: [false, true])
+func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
+    var sim = Sim()
+    sim.run(20 * minute)
+    sim.sleep(29 * minute + 58, idleCounterRuns: idleCounterRuns)
+    sim.run(3)
+    #expect(sim.duck.workTime == 20 * minute + 3)
+}
+
+@Test func wakeWithoutSleepIsAPlainTick() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    let before = sim.duck.workTime
+    sim.time.now += 50
+    sim.sensors.idleSeconds = 2
+    sim.send(.wake)
+    #expect(sim.duck.workTime == before + 50)
+    sim.time.now += 1
+    sim.sensors.idleSeconds = 0
+    sim.send(.wake)
+    #expect(sim.duck.workTime == before + 51, "a repeated wake")
+}
+
+@Test func repeatedSleepChangesNothing() {
+    var sim = Sim()
+    sim.run(20 * minute)
+    let before = sim.duck.workTime
+    sim.send(.sleep)
+    sim.time.now += 5 * minute
+    sim.send(.sleep)
+    sim.time.now += 5 * minute
+    sim.sensors.idleSeconds = 0
+    sim.send(.wake)
+    #expect(sim.duck.workTime == before)
 }
 
 @Test func lateTickWithRecentInputCountsAsWork() {
@@ -301,6 +351,11 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
 extension DuckPhase {
     func isWaiting(_ t: Thirst) -> Bool {
         if case .waiting(t, _) = self { return true }
+        return false
+    }
+
+    var isAsleep: Bool {
+        if case .asleep = self { return true }
         return false
     }
 }

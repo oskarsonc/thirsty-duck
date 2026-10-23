@@ -23,7 +23,6 @@ public struct Duck: Sendable {
     private var lastTick: Date?
     /// The last real user input. Every break is measured from it.
     private var lastInput: Date = .distantPast
-    private var wokeAt: Date = .distantPast
     private var macAsleep = false
     private var wasWorkHours: Bool?
     private var rng: SplitMix64
@@ -66,17 +65,18 @@ public struct Duck: Sendable {
 
     public mutating func step(now: Date, sensors: Sensors, input: DuckInput = .tick) {
         switch input {
-        case .tick: tick(now, sensors)
         case .click: click(now)
         case .callNow: callNow(now, sensors)
-        case .sleep:
+        case .sleep where !macAsleep:
             tick(now, sensors)
             macAsleep = true
-        case .wake:
+        case .sleep: break
+        case .wake where macAsleep:
+            // The lid, a key or the mouse wakes the Mac, so the wake is input. The sleep is not work.
             macAsleep = false
             lastTick = now
-            wokeAt = now
-            tick(now, sensors)
+            tick(now, sensors, inputAt: now)
+        case .tick, .wake: tick(now, sensors)
         }
         let b = bubble(at: now)
         if b != bubble {
@@ -84,9 +84,6 @@ public struct Duck: Sendable {
             bubbleSince = now
         }
     }
-
-    /// The idle counter can read as fresh input right after a wake, from the wake itself.
-    static let wakeGrace: TimeInterval = 5
 
     private mutating func click(_ now: Date) {
         switch phase {
@@ -105,15 +102,15 @@ public struct Duck: Sendable {
         enter(now, s)
     }
 
-    private mutating func tick(_ now: Date, _ s: Sensors) {
+    /// `inputAt` is input the idle counter may not show yet.
+    private mutating func tick(_ now: Date, _ s: Sensors, inputAt: Date = .distantPast) {
         let last = lastTick ?? now
         let dt = max(0, now.timeIntervalSince(last))
         lastTick = now
         guard !macAsleep else { return }
 
         let before = lastInput
-        let seen = now - s.idleSeconds
-        if seen > lastInput && seen > wokeAt + Self.wakeGrace { lastInput = seen }
+        lastInput = max(lastInput, now - s.idleSeconds, inputAt)
         let split = min(max(last, lastInput), now)
         let worked = present(last, split, since: before) + present(split, now, since: lastInput)
         let longestBreak = max(lastInput.timeIntervalSince(before), now.timeIntervalSince(lastInput))
