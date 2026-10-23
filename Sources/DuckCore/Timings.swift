@@ -55,7 +55,6 @@ public enum Motion {
     public static let followSpeed: CGFloat = 220
     public static let strollSpeed: CGFloat = 40
     public static let homeInset: CGFloat = 140
-    public static let halfWidth: CGFloat = 40
     public static let offscreen: CGFloat = 50
     public static let followGap: CGFloat = 60
     public static let followDrop: CGFloat = 35

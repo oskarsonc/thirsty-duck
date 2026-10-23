@@ -118,6 +118,27 @@ let minute: TimeInterval = 60
     #expect(!sim.duck.facingRight)
 }
 
+@Test(arguments: [
+    // Corners of the main screen.
+    CGPoint(x: 2, y: 2), CGPoint(x: 1438, y: 2), CGPoint(x: 2, y: 898), CGPoint(x: 1438, y: 898),
+    // Corners of a second screen above and left of it.
+    CGPoint(x: -1918, y: 902), CGPoint(x: -2, y: 902), CGPoint(x: -1918, y: 1978), CGPoint(x: -2, y: 1978),
+])
+func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
+    var sim = Sim()
+    let upperLeft = CGRect(x: -1920, y: 900, width: 1920, height: 1080)
+    sim.sensors.screens.append(Screen(frame: upperLeft, visible: upperLeft))
+    sim.run(60 * minute)
+    sim.sensors.mouse = mouse
+    sim.run(30, every: 1.0 / 60)
+    let screen = sim.sensors.screens.first { $0.frame.contains(mouse) }!.frame
+    let p = sim.duck.position
+    let box = CGRect(x: p.x - Layout.followHalfWidth, y: p.y,
+                     width: 2 * Layout.followHalfWidth, height: Layout.followHeight)
+    #expect(sim.duck.phase.isWaiting(.follow))
+    #expect(screen.contains(box), "\(box) is not inside \(screen)")
+}
+
 @Test func awayTimeDoesNotCount() {
     var sim = Sim()
     sim.run(30 * minute)

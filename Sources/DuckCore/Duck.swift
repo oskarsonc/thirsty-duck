@@ -213,12 +213,14 @@ public struct Duck: Sendable {
         case .follow:
             let m = s.mouse
             let screen = s.screens.first(where: { $0.frame.contains(m) })?.frame ?? stage
+            let half = Layout.followHalfWidth
             let side: CGFloat = position.x < m.x ? -1 : 1
             var x = m.x + side * Motion.followGap
-            if x - Motion.halfWidth < screen.minX || x + Motion.halfWidth > screen.maxX {
+            if x - half < screen.minX || x + half > screen.maxX {
                 x = m.x - side * Motion.followGap
             }
-            return CGPoint(x: x, y: max(m.y - Motion.followDrop, screen.minY))
+            return CGPoint(x: min(max(x, screen.minX + half), screen.maxX - half),
+                           y: min(max(m.y - Motion.followDrop, screen.minY), screen.maxY - Layout.followHeight))
         }
     }
 

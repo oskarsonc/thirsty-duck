@@ -10,6 +10,11 @@ public enum Layout {
     public static let bubblePadding = CGSize(width: 10, height: 6)
     public static let bubbleTail: CGFloat = 6
 
+    /// Room the level 4 duck needs around its bottom center: half its 137 pt bubble on each side,
+    /// and the sprite with the 34 pt bubble on top.
+    public static let followHalfWidth: CGFloat = 70
+    public static let followHeight: CGFloat = sprite.height + bubbleGap + 34
+
     public static func bubbleSize(text: CGSize) -> CGSize {
         CGSize(width: text.width + 2 * bubblePadding.width,
                height: text.height + 2 * bubblePadding.height + bubbleTail)
