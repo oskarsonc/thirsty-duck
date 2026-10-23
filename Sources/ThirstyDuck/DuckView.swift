@@ -2,19 +2,14 @@ import DuckCore
 import SwiftUI
 
 struct DuckView: View {
-    static let size = CGSize(width: 240, height: 200)
-    /// Distance from the panel bottom to the line the duck stands on.
-    static let ground: CGFloat = 10
-    static let bubbleGap: CGFloat = 6
-
     let duck: Duck
     let now: Date
     let bubble: Bubble?
     let bubbleSince: Date
 
-    private var groundY: CGFloat { Self.size.height - Self.ground }
+    private var groundY: CGFloat { Layout.panel.height - Layout.ground }
     private var spriteTop: CGFloat { groundY - Sprite.size.height }
-    private var headX: CGFloat { Self.size.width / 2 + (duck.facingRight ? 3 : -3) }
+    private var headX: CGFloat { Layout.panel.width / 2 + (duck.facingRight ? 3 : -3) }
 
     var body: some View {
         let pose = Pose(duck: duck, now: now)
@@ -22,12 +17,12 @@ struct DuckView: View {
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(.black.opacity(0.13))
                 .frame(width: 49, height: 3)
-                .position(x: Self.size.width / 2 + (duck.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
+                .position(x: Layout.panel.width / 2 + (duck.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
 
             SpriteView(eyes: pose.eyes, step: pose.step)
                 .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
                 .scaleEffect(x: pose.mirrored ? -1 : 1, y: 1)
-                .position(x: Self.size.width / 2 + pose.jitter, y: groundY - Sprite.size.height / 2 - pose.lift)
+                .position(x: Layout.panel.width / 2 + pose.jitter, y: groundY - Sprite.size.height / 2 - pose.lift)
 
             extras
 
@@ -37,10 +32,10 @@ struct DuckView: View {
                     BubbleView(bubble: bubble)
                         .scaleEffect(pop(now.timeIntervalSince(bubbleSince)), anchor: .bottom)
                 }
-                .frame(width: Self.size.width, height: spriteTop - Self.bubbleGap)
+                .frame(width: Layout.panel.width, height: spriteTop - Layout.bubbleGap)
             }
         }
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(width: Layout.panel.width, height: Layout.panel.height)
     }
 
     @ViewBuilder private var extras: some View {
@@ -81,53 +76,7 @@ struct DuckView: View {
     }
 }
 
-private struct Pose {
-    var lift: CGFloat = 0
-    var tilt: Double = 0
-    var jitter: CGFloat = 0
-    var mirrored: Bool
-    var eyes = Eyes.open
-    var step = 0
-
-    init(duck: Duck, now: Date) {
-        mirrored = !duck.facingRight
-        let w = now.timeIntervalSinceReferenceDate
-        let t = now.timeIntervalSince(duck.phaseStart)
-        if duck.isWalking {
-            step = Int(w * 6) % 2
-            lift = 2 * abs(sin(w * .pi * 6))
-            tilt = 3 * sin(w * .pi * 6)
-        }
-        switch duck.phase {
-        case .waiting(let thirst, let trick):
-            if thirst == .thirsty { tilt += 5 }
-            guard let trick else { break }
-            let k = min(t / trick.duration, 1)
-            switch trick {
-            case .blink: eyes = .closed
-            case .lookBack: mirrored.toggle()
-            case .hop: lift = 14 * sin(.pi * k)
-            case .hopHop: lift = 14 * abs(sin(2 * .pi * k))
-            case .wiggle: tilt = 8 * sin(4 * .pi * k)
-            case .peck: tilt = 18 * sin(.pi * k)
-            case .shake: jitter = 2.5 * sin(t * 2 * .pi * 18)
-            case .stroll: break
-            }
-        case .asleep:
-            eyes = .closed
-        case .happy:
-            eyes = .happy
-            lift = 14 * abs(sin(2 * .pi * min(t / 0.9, 1)))
-        case .leaving:
-            eyes = .happy
-        case .hidden, .entering, .moving:
-            break
-        }
-    }
-}
-
 private struct BubbleView: View {
-    static let tail: CGFloat = 6
     let bubble: Bubble
 
     var body: some View {
@@ -135,11 +84,11 @@ private struct BubbleView: View {
             .font(.system(size: 13, weight: .bold, design: .rounded))
             .foregroundStyle(bubble.alarm ? Color(hex: 0xC92A2A) : Color(hex: 0x1F2937))
             .fixedSize()
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .padding(.bottom, Self.tail)
+            .padding(.horizontal, Layout.bubblePadding.width)
+            .padding(.vertical, Layout.bubblePadding.height)
+            .padding(.bottom, Layout.bubbleTail)
             .background(
-                BubbleShape(tail: Self.tail)
+                BubbleShape(tail: Layout.bubbleTail)
                     .fill(bubble.alarm ? Color(hex: 0xFFE3E3) : .white)
                     .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
             )

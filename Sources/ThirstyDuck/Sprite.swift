@@ -1,12 +1,9 @@
+import DuckCore
 import SwiftUI
 
-enum Eyes {
-    case open, closed, happy
-}
-
 enum Sprite {
-    static let cell: CGFloat = 5
-    static let size = CGSize(width: 16 * cell, height: 14 * cell)
+    static let size = Layout.sprite
+    static let cell = size.width / 16
 
     private static let body = [
         "......YYYY......",

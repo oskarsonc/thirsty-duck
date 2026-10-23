@@ -13,12 +13,13 @@ final class DuckController {
     private var timerIsFast = false
     private var bubble: Bubble?
     private var bubbleSince = Date.distantPast
+    private var bubbleSize: CGSize?
 
     init(timings: Timings, time: any TimeSource = SystemTime()) {
         duck = Duck(timings: timings)
         self.time = time
         host = NSHostingView(rootView: DuckView(duck: duck, now: time.now, bubble: nil, bubbleSince: .distantPast))
-        host.frame = NSRect(origin: .zero, size: DuckView.size)
+        host.frame = NSRect(origin: .zero, size: Layout.panel)
         panel.contentView = host
         panel.onClick = { [weak self] in self?.send(.click) }
         let center = NSWorkspace.shared.notificationCenter
@@ -61,26 +62,30 @@ final class DuckController {
         if b != bubble {
             bubble = b
             bubbleSince = now
+            bubbleSize = b.map { Layout.bubbleSize(text: Self.textSize($0.text)) }
         }
         host.rootView = DuckView(duck: duck, now: now, bubble: b, bubbleSince: bubbleSince)
 
         let p = duck.position
-        let origin = NSPoint(x: (p.x - DuckView.size.width / 2).rounded(), y: (p.y - DuckView.ground).rounded())
+        let origin = NSPoint(x: (p.x - Layout.panel.width / 2).rounded(), y: (p.y - Layout.ground).rounded())
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
 
-        let hit = hitRect(origin: origin, withBubble: b != nil)
-        if panel.ignoresMouseEvents == hit.contains(mouse) { panel.ignoresMouseEvents.toggle() }
+        let pose = Pose(duck: duck, now: now)
+        panel.hitRegions = Layout.hitRegions(lift: pose.lift, jitter: pose.jitter, bubble: bubbleSize)
+        let over = panel.hits(NSPoint(x: mouse.x - origin.x, y: mouse.y - origin.y))
+        if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
 
-    private func hitRect(origin: NSPoint, withBubble: Bool) -> NSRect {
-        let s = DuckView.size
-        let sprite = NSRect(x: origin.x + (s.width - Sprite.size.width) / 2, y: origin.y + DuckView.ground,
-                            width: Sprite.size.width, height: Sprite.size.height + 14)
-        guard withBubble else { return sprite }
-        let bubble = NSRect(x: origin.x + s.width / 2 - 80, y: sprite.minY + Sprite.size.height + DuckView.bubbleGap,
-                            width: 160, height: 36)
-        return sprite.union(bubble)
+    /// Matches the bubble font in `DuckView`.
+    private static let bubbleFont: NSFont = {
+        let bold = NSFont.systemFont(ofSize: 13, weight: .bold)
+        return bold.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: 13) } ?? bold
+    }()
+
+    private static func textSize(_ text: String) -> CGSize {
+        let size = (text as NSString).size(withAttributes: [.font: bubbleFont])
+        return CGSize(width: size.width.rounded(.up), height: size.height.rounded(.up))
     }
 
     private static func readSensors() -> Sensors {
