@@ -96,22 +96,22 @@ let minute: TimeInterval = 60
     #expect(sim.thirst == .follow)
 }
 
-@Test func chillDuckSitsNearTheRightEdgeOnTheDock() {
+@Test func chillDuckSitsNearTheRightEdgeOnTheScreenBottom() {
     var sim = Sim()
     sim.run(45 * minute)
     #expect(sim.duck.position.x > 1440)
     sim.run(3, every: 1.0 / 60)
     #expect(sim.duck.phase == .waiting(.chill, nil))
-    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 80))
+    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
     #expect(!sim.duck.facingRight)
 }
 
-@Test func askDuckWalksToTheMiddle() {
+@Test func askDuckWalksTowardTheMiddle() {
     var sim = Sim()
     sim.run(50 * minute)
     sim.run(4 * minute, every: 0.05)
     #expect(sim.duck.phase.isWaiting(.ask))
-    #expect(sim.duck.position == CGPoint(x: 720, y: 80))
+    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset - Motion.askWalk, y: 0))
     #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
@@ -123,15 +123,15 @@ let minute: TimeInterval = 60
     sim.run(45 * minute)
     sim.run(3, every: 1.0 / 60)
     #expect(sim.duck.phase == .waiting(.chill, nil))
-    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 80))
+    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
 }
 
 @Test func followDuckStopsBesideTheCursorAndFacesIt() {
     var sim = Sim()
     sim.run(60 * minute)
-    sim.sensors.mouse = CGPoint(x: 1000, y: 600)
+    sim.sensors.mouse = CGPoint(x: 1200, y: 600)
     sim.run(10, every: 1.0 / 60)
-    #expect(sim.duck.position == CGPoint(x: 1000 - Motion.followGap, y: 600 - Motion.followDrop))
+    #expect(sim.duck.position == CGPoint(x: 1200 - Motion.followGap, y: 600 - Motion.followDrop))
     #expect(sim.duck.facingRight)
     sim.sensors.mouse = CGPoint(x: 200, y: 300)
     sim.run(10, every: 1.0 / 60)

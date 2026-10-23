@@ -16,6 +16,8 @@ public struct Duck: Sendable {
     public private(set) var bubbleSince: Date = .distantPast
 
     private var stage: CGRect = .zero
+    /// The real bottom edge of the screen. The Dock may not reach the duck, so it does not stand on it.
+    private var ground: CGFloat = 0
     private var home: CGPoint = .zero
     private var exitX: CGFloat = 0
     private var nextTrickAt: Date = .distantPast
@@ -186,8 +188,9 @@ public struct Duck: Sendable {
     private mutating func enter(_ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first else { return }
         stage = screen.visible
-        position = CGPoint(x: stage.maxX + Motion.offscreen, y: stage.minY)
-        home = CGPoint(x: stage.maxX - Motion.homeInset, y: stage.minY)
+        ground = screen.frame.minY
+        position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
+        home = CGPoint(x: stage.maxX - Motion.homeInset, y: ground)
         facingRight = false
         shownAt = now
         set(.entering(level), now)
@@ -213,7 +216,7 @@ public struct Duck: Sendable {
     private func target(_ t: Thirst, _ s: Sensors) -> CGPoint {
         switch t {
         case .chill: return home
-        case .ask: return CGPoint(x: stage.midX, y: stage.minY)
+        case .ask: return CGPoint(x: max(stage.midX, stage.maxX - Motion.homeInset - Motion.askWalk), y: ground)
         case .thirsty: return position
         case .follow:
             let m = s.mouse

@@ -51,8 +51,8 @@ The duck comes once every `reminderInterval` of active work time. Then thirst go
 
 | Level | Where the duck is | What it does | Bubble |
 |---|---|---|---|
-| 1 Chill | Walks in from the right edge along the bottom of the screen (on top of the Dock, `visibleFrame.minY`) and sits about 140 pt from that edge. | Chills. Every few seconds it does one small trick, picked at random so it changes: blink, look the other way (flip), hop, wiggle, peck (lean forward), short stroll left or right. | Shows `💧?` now and then, for 3 s. |
-| 2 Ask | Walks along the bottom toward the middle of the screen. | Tricks are more about asking: hop, wiggle, hop-hop. | `drink! 💧`, always shown. |
+| 1 Chill | Walks in from the right edge along the real bottom edge of the screen (`frame.minY`, not on top of the Dock, because the Dock may not reach that far) and sits about 140 pt from that edge. | Chills. Every few seconds it does one small trick, picked at random so it changes: blink, look the other way (flip), hop, wiggle, peck (lean forward), short stroll left or right. | Shows `💧?` now and then, for 3 s. |
+| 2 Ask | Walks 300 pt along the bottom toward the middle of the screen (not past the middle), so it stays clear of a bottom Dock. | Tricks are more about asking: hop, wiggle, hop-hop. | `drink! 💧`, always shown. |
 | 3 Thirsty | Stays at the bottom. | Sweat drops, shakes now and then, droopy (no hops). | `so thirsty… 💧💧`, red style. |
 | 4 Follow | Leaves the bottom and follows the mouse cursor anywhere on any screen. It stops about 60 pt beside the cursor so it never covers what the user points at, and faces the cursor. The duck and its bubble, at the top of the pop, stay on the cursor's screen and under its menu bar. On a screen smaller than that, the duck's feet stay on it. | Walks (feet and bob) while moving, shakes when it stops. Sweat drops. | `DRINK WATER! 🥵` |
 

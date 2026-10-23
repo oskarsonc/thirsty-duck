@@ -55,6 +55,8 @@ public enum Motion {
     public static let followSpeed: CGFloat = 220
     public static let strollSpeed: CGFloat = 40
     public static let homeInset: CGFloat = 140
+    /// Level 2 walks this far toward the middle, so it stays clear of a bottom Dock.
+    public static let askWalk: CGFloat = 300
     public static let offscreen: CGFloat = 50
     public static let followGap: CGFloat = 60
     public static let followDrop: CGFloat = 35

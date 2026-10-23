@@ -1,6 +1,6 @@
 # Thirsty Duck
 
-A pixel duckling walks onto your screen to remind you to drink water. It walks in from the right edge and sits on top of the Dock. If you ignore it, it gets more thirsty: first it asks, then it sweats, then it follows your cursor. Click the duck when you drank. It is happy and walks off to the right, and the reminder starts again.
+A pixel duckling walks onto your screen to remind you to drink water. It walks in from the right edge and sits on the bottom of the main screen. If you ignore it, it gets more thirsty: first it asks, then it sweats, then it follows your cursor. Click the duck when you drank. It is happy and walks off to the right, and the reminder starts again.
 
 The duck comes after 30 minutes of use. The clock counts only time when you use the Mac, every day from 08:00 to 23:00. After 5 minutes with no input the duck falls asleep and the clock stops. Mac sleep counts as part of the break. A break of 30 minutes or more, counted from your last input, starts the clock again from zero.
 
