@@ -115,7 +115,7 @@ let minute: TimeInterval = 60
     #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
-@Test func duckComesOnTheMainScreenWhereverTheCursorIs() {
+@Test func duckComesOnTheFirstScreenWhereverTheCursorIs() {
     var sim = Sim()
     let other = CGRect(x: -1440, y: -400, width: 1440, height: 2560)
     sim.sensors.screens.append(Screen(frame: other, visible: other))
@@ -398,6 +398,15 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(sim.duck.phase == .entering(.chill))
     sim.run(1.0 / 30)
     #expect(sim.duck.phase == .entering(.chill))
+}
+
+@Test func aShorterReminderIntervalTakesEffectAtOnce() {
+    var sim = Sim()
+    sim.run(25 * minute)
+    #expect(sim.duck.phase == .hidden)
+    sim.duck.timings.reminderInterval = 20 * minute
+    sim.run(1)
+    #expect(sim.duck.isVisible)
 }
 
 @Test func fastTimingsAreShortAndIgnoreWorkHours() {

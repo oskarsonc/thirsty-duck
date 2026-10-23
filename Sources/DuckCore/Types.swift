@@ -71,7 +71,7 @@ public struct Screen: Sendable {
 public struct Sensors: Sendable {
     public var idleSeconds: TimeInterval
     public var mouse: CGPoint
-    /// The first screen is the main screen, the one with the menu bar.
+    /// The duck comes in on the first screen. The app puts the screen the user picked first, else the main screen.
     public var screens: [Screen]
 
     public init(idleSeconds: TimeInterval, mouse: CGPoint, screens: [Screen]) {

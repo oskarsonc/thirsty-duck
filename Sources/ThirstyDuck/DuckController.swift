@@ -42,6 +42,15 @@ final class DuckController {
 
     func callNow() { send(.callNow) }
 
+    /// Fast mode keeps its own short times.
+    func setReminderMinutes(_ minutes: Int) {
+        guard duck.timings.workHours != nil else { return }
+        duck.timings.reminderInterval = TimeInterval(minutes * 60)
+        send(.tick)
+    }
+
+    func screenChoiceChanged() { screens = DuckController.readScreens() }
+
     private func send(_ input: DuckInput) {
         let now = time.now
         let mouse = NSEvent.mouseLocation
@@ -136,7 +145,10 @@ final class DuckController {
         return bold.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: 13) } ?? bold
     }()
 
+    /// The picked screen goes first, so the duck comes in there. If it is not connected, the main screen stays first.
     private static func readScreens() -> [Screen] {
-        NSScreen.screens.map { Screen(frame: $0.frame, visible: $0.visibleFrame) }
+        var all = NSScreen.screens
+        if let i = all.firstIndex(where: { $0.localizedName == Settings.screenName }) { all.insert(all.remove(at: i), at: 0) }
+        return all.map { Screen(frame: $0.frame, visible: $0.visibleFrame) }
     }
 }

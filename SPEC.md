@@ -6,7 +6,7 @@ Owner wants: native, light, cute, no extra features.
 
 ## Character
 
-The pixel duckling from `../duck-preview.html` (the `pixel` entry in `DUCKS`). Keep these exact pixels and colors.
+The pixel duckling from `design-preview.html` (the `pixel` entry in `DUCKS`). Keep these exact pixels and colors.
 
 Colors: `Y #FFD43B` body, `D #FAB005` wing, `O #FF922B` beak and feet, `K #2B2B2B` eye, `W #FFFFFF` eye shine, `P #FF8FA3` blush.
 
@@ -77,7 +77,7 @@ The timer counts only time when the user is at the Mac and inside work hours.
 ## Times (constants in one place)
 
 ```
-reminderInterval = 30 min
+reminderInterval = 30 min  (the menu can change it)
 levelStep        = 5 min    (so Follow starts 15 min after the duck arrives)
 awayAfter        = 5 min
 longBreak        = 30 min
@@ -91,6 +91,8 @@ workHours        = 08:00-23:00
 
 A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
 - `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user). It first ends any break, then counts as input.
+- `Remind every` submenu: 20, 30, 45 or 60 min. The choice is saved and sets `reminderInterval`. Hidden in fast mode.
+- `Show on` submenu, only with more than one screen: the screen the duck comes in on. The main screen by default. Saved by screen name; if that screen is not connected, the main screen is used.
 - `Open at login` toggle (`SMAppService.mainApp`)
 - `Quit`
 
@@ -120,7 +122,7 @@ enum DuckPhase {
 
   Keep the pure logic (reminder clock, away detection, work hours, level timing, phase changes) separate from AppKit and SwiftUI, so it can be tested with a fake clock. Add a few unit tests for that logic (`swift test`), for example: thirst rises every level step; away time does not count; a long break resets the clock; off-hours do not start a reminder; a click resets the clock.
 
-- Coordinates: AppKit global screen coordinates (origin bottom-left of the main screen). The duck always comes on the main screen (the one with the menu bar). In Follow, the duck can cross screens.
+- Coordinates: AppKit global screen coordinates (origin bottom-left of the main screen). The duck comes in on the screen picked in `Show on`, else on the main screen (the one with the menu bar). In Follow, the duck can cross screens.
 - Keep the code small and plain. No third-party packages. No sound. No settings window.
 
 ## Files

@@ -3,7 +3,8 @@ import Foundation
 
 /// The whole duck. The app sends inputs to `step` and only reads the rest.
 public struct Duck: Sendable {
-    public let timings: Timings
+    /// The app may change `reminderInterval` while it runs; the clock keeps its count.
+    public var timings: Timings
     public private(set) var phase: DuckPhase = .hidden
     public private(set) var phaseStart: Date = .distantPast
     public private(set) var shownAt: Date = .distantPast
