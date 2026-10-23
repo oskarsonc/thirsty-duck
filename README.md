@@ -86,7 +86,7 @@ DUCK_FAST=1 "build/Thirsty Duck.app/Contents/MacOS/ThirstyDuck"   # demo times
 ./scripts/render-docs.sh                # renders the README pictures and the app icon
 ```
 
-- **Fast mode** (`DUCK_FAST=1`): the duck comes after 10 s, gets more thirsty every 15 s, sleeps after 10 s with no input, and a 30 s break starts the clock again. Work hours are ignored. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
+- **Fast mode** (`DUCK_FAST=1`): the duck comes after 10 s, gets more thirsty every 20 s, sleeps after 10 s with no input, and a 30 s break starts the clock again. Work hours are ignored. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
 - If `swift test` fails with "plugin for module 'TestingMacros' not found", load the plugin by path:
   ```sh
   swift test -Xswiftc -load-plugin-library \

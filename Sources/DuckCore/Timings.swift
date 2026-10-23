@@ -51,7 +51,7 @@ public struct Timings: Sendable {
     /// For a demo: a short wait, then long enough on each level to watch it.
     public static let fast = Timings(
         reminderInterval: 10,
-        levelStep: 15,
+        levelStep: 20,
         awayAfter: 10,
         longBreak: 30,
         workHours: nil

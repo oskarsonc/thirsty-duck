@@ -85,7 +85,7 @@ workDays         = every day
 workHours        = 08:00-23:00
 ```
 
-`DUCK_FAST=1` environment variable: demo times (10 s interval, 15 s levels, 10 s away, 30 s long break) and ignore work hours. This is for testing only.
+`DUCK_FAST=1` environment variable: demo times (10 s interval, 20 s levels, 10 s away, 30 s long break) and ignore work hours. This is for testing only.
 
 ## Menu bar
 

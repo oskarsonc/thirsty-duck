@@ -412,7 +412,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
 @Test func fastTimingsAreShortAndIgnoreWorkHours() {
     let fast = Timings.from(environment: ["DUCK_FAST": "1"])
     #expect(fast.reminderInterval == 10)
-    #expect(fast.levelStep == 15)
+    #expect(fast.levelStep == 20)
     #expect(fast.awayAfter == 10)
     #expect(fast.longBreak == 30)
     #expect(fast.workHours == nil)
