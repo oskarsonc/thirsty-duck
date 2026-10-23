@@ -2,22 +2,19 @@ import DuckCore
 import SwiftUI
 
 struct DuckView: View {
-    let duck: Duck
-    let now: Date
-    let bubble: Bubble?
-    let bubbleSince: Date
+    let frame: Frame
 
     private var groundY: CGFloat { Layout.panel.height - Layout.ground }
     private var spriteTop: CGFloat { groundY - Sprite.size.height }
-    private var headX: CGFloat { Layout.panel.width / 2 + (duck.facingRight ? 3 : -3) }
+    private var headX: CGFloat { Layout.panel.width / 2 + (frame.facingRight ? 3 : -3) }
 
     var body: some View {
-        let pose = Pose(duck: duck, now: now)
+        let pose = frame.pose
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(.black.opacity(0.13))
                 .frame(width: 49, height: 3)
-                .position(x: Layout.panel.width / 2 + (duck.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
+                .position(x: Layout.panel.width / 2 + (frame.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
 
             SpriteView(eyes: pose.eyes, step: pose.step)
                 .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
@@ -26,11 +23,11 @@ struct DuckView: View {
 
             extras
 
-            if let bubble {
+            if let bubble = frame.bubble {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     BubbleView(bubble: bubble)
-                        .scaleEffect(pop(now.timeIntervalSince(bubbleSince)), anchor: .bottom)
+                        .scaleEffect(frame.bubbleScale, anchor: .bottom)
                 }
                 .frame(width: Layout.panel.width, height: spriteTop - Layout.bubbleGap)
             }
@@ -39,23 +36,20 @@ struct DuckView: View {
     }
 
     @ViewBuilder private var extras: some View {
-        let w = now.timeIntervalSinceReferenceDate
-        switch duck.phase {
-        case .waiting(.thirsty, _), .moving(.thirsty), .waiting(.follow, _), .moving(.follow):
+        switch frame.effect {
+        case .sweat(let loop):
             ForEach(0..<2, id: \.self) { i in
-                let k = (w * 0.9 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+                let k = (loop + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
                 let side: CGFloat = i == 0 ? -1 : 1
                 Text("💦").font(.system(size: 11))
                     .opacity(1 - k)
                     .position(x: headX + side * (16 + k * 10), y: spriteTop - 4 + k * 12)
             }
-        case .asleep:
-            let k = (w / 2).truncatingRemainder(dividingBy: 1)
+        case .snooze(let k):
             Text("💤").font(.system(size: 12 + k * 6))
                 .opacity(1 - k)
-                .position(x: headX + (duck.facingRight ? 22 : -22) + k * 8, y: spriteTop - k * 30)
-        case .happy:
-            let t = now.timeIntervalSince(duck.phaseStart)
+                .position(x: headX + (frame.facingRight ? 22 : -22) + k * 8, y: spriteTop - k * 30)
+        case .cheer(let t):
             ForEach(Array(["💧", "💛", "✨"].enumerated()), id: \.offset) { i, emoji in
                 let k = t - Double(i) * 0.12
                 if (0..<1).contains(k) {
@@ -65,14 +59,9 @@ struct DuckView: View {
                         .position(x: headX + CGFloat(i - 1) * 18, y: spriteTop + 6 - k * 46)
                 }
             }
-        default:
+        case .none:
             EmptyView()
         }
-    }
-
-    /// A small spring from 0.4 to 1.
-    private func pop(_ t: TimeInterval) -> CGFloat {
-        1 - 0.6 * exp(-7 * t) * cos(16 * t)
     }
 }
 

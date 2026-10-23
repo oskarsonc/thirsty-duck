@@ -60,6 +60,7 @@ public enum Motion {
     public static let followDrop: CGFloat = 35
     public static let followSlack: CGFloat = 30
     public static let happyDuration: TimeInterval = 1.3
+    public static let bubblePop: TimeInterval = 0.7
     public static let chillBubbleCycle: TimeInterval = 9
     public static let chillBubbleShown: Range<TimeInterval> = 2..<5
 }

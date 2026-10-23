@@ -102,7 +102,7 @@ let minute: TimeInterval = 60
     sim.run(4 * minute, every: 0.05)
     #expect(sim.duck.phase.isWaiting(.ask))
     #expect(sim.duck.position == CGPoint(x: 720, y: 80))
-    #expect(sim.duck.bubble(at: sim.time.now)?.text == "drink! 💧")
+    #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
 @Test func followDuckStopsBesideTheCursorAndFacesIt() {
@@ -156,7 +156,7 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
         Issue.record("expected asleep, got \(sim.duck.phase)")
         return
     }
-    #expect(sim.duck.bubble(at: sim.time.now) == nil)
+    #expect(sim.duck.bubble == nil)
     sim.run(20 * minute, idle: true)
     #expect(sim.duck.phase == .asleep(level))
     sim.run(1)
@@ -246,7 +246,7 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     sim.send(.click)
     #expect(sim.duck.phase == .happy)
     #expect(sim.duck.workTime == 0)
-    #expect(sim.duck.bubble(at: sim.time.now)?.text == "thank you! 💛")
+    #expect(sim.duck.bubble?.text == "thank you! 💛")
     sim.run(2, every: 1.0 / 60)
     #expect(sim.duck.phase == .leaving)
     sim.run(30, every: 1.0 / 60)

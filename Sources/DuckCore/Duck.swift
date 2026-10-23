@@ -12,6 +12,8 @@ public struct Duck: Sendable {
     /// Bottom center of the duck, in global AppKit coordinates.
     public private(set) var position: CGPoint = .zero
     public private(set) var facingRight = true
+    public private(set) var bubble: Bubble?
+    public private(set) var bubbleSince: Date = .distantPast
 
     private var stage: CGRect = .zero
     private var home: CGPoint = .zero
@@ -46,7 +48,7 @@ public struct Duck: Sendable {
         }
     }
 
-    public func bubble(at now: Date) -> Bubble? {
+    private func bubble(at now: Date) -> Bubble? {
         switch phase {
         case .entering(let t), .moving(let t), .waiting(let t, _):
             switch t {
@@ -75,6 +77,11 @@ public struct Duck: Sendable {
             lastTick = now
             wokeAt = now
             tick(now, sensors)
+        }
+        let b = bubble(at: now)
+        if b != bubble {
+            bubble = b
+            bubbleSince = now
         }
     }
 
