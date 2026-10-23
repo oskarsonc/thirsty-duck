@@ -22,7 +22,9 @@ public struct WorkHours: Sendable {
     public func nextStart(after date: Date) -> Date? {
         let today = calendar.startOfDay(for: date)
         for day in 0...7 {
-            guard let start = calendar.date(byAdding: DateComponents(day: day, hour: startHour), to: today),
+            // Set the clock hour on the day, so a daylight saving change does not shift it.
+            guard let day = calendar.date(byAdding: .day, value: day, to: today),
+                  let start = calendar.date(bySettingHour: startHour, minute: 0, second: 0, of: day),
                   start > date, weekdays.contains(calendar.component(.weekday, from: start)) else { continue }
             return start
         }

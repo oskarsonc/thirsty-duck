@@ -142,7 +142,11 @@ public struct Duck: Sendable {
             leave(now, s)
         }
         if inWorkHours { workTime += worked }
-        if isVisible && !s.screens.contains(where: { $0.frame == stageFrame }) { restage(now, s) }
+        if isVisible && !s.screens.contains(where: { $0.frame == stageFrame }) {
+            restage(now, s)
+        } else if isFollowing && !s.screens.contains(where: { $0.frame.contains(position) }) {
+            restage(now, s)
+        }
 
         switch phase {
         case .hidden:
@@ -215,23 +219,32 @@ public struct Duck: Sendable {
         home = CGPoint(x: stage.maxX - Motion.homeInset, y: ground)
     }
 
-    /// The duck's screen was removed or changed: walk in again on a connected screen at the same level.
+    /// The duck's screen was removed or changed, or a follow duck is off every screen:
+    /// go on at the same level on a connected screen.
     private mutating func restage(_ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first else { return }
         takeStage(screen)
         switch phase {
         case .happy, .leaving:
             set(.hidden, now)
-        case .asleep(let t):
-            if t != .follow { position = home }
+        case .asleep:
+            position = home
+        case .entering(.follow), .moving(.follow), .waiting(.follow, _):
+            // Walk to the cursor, even if it is within the leash.
+            if phase != .moving(.follow) { set(.moving(.follow), now) }
         case .entering(let t), .moving(let t), .waiting(let t, _):
-            // Follow finds the cursor's screen by itself.
-            guard t != .follow else { break }
-            position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
+            position = home
             facingRight = false
-            set(.entering(t), now)
+            set(t == .thirsty ? .waiting(.thirsty, nil) : .moving(t), now)
         case .hidden:
             break
+        }
+    }
+
+    private var isFollowing: Bool {
+        switch phase {
+        case .entering(.follow), .moving(.follow), .waiting(.follow, _), .asleep(.follow): true
+        default: false
         }
     }
 

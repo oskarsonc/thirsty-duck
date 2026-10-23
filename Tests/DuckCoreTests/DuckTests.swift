@@ -515,3 +515,56 @@ extension DuckPhase {
     #expect(sim.thirst == .ask)
     #expect(main.frame.contains(sim.duck.position))
 }
+
+@Test(arguments: [false, true])
+func aThirstyDuckComesBackFromAChangedScreen(removed: Bool) {
+    var sim = Sim()
+    let main = sim.sensors.screens[0]
+    let external = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+    sim.sensors.screens = removed ? [Screen(frame: external, visible: external), main] : [main]
+    sim.run(56 * minute, every: 0.05)
+    #expect(sim.thirst == .thirsty)
+    let smaller = CGRect(x: 0, y: 0, width: 1280, height: 800)
+    sim.sensors.screens = removed ? [main] : [Screen(frame: smaller, visible: smaller)]
+    sim.run(20, every: 0.05)
+    #expect(sim.thirst == .thirsty)
+    #expect(sim.sensors.screens[0].frame.contains(sim.duck.position))
+}
+
+@Test func aFollowDuckLeftOnARemovedScreenComesBack() {
+    var sim = Sim()
+    let external = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+    sim.sensors.screens.append(Screen(frame: external, visible: external))
+    sim.run(60 * minute)
+    sim.sensors.mouse = CGPoint(x: 1480, y: 135)
+    sim.run(20, every: 1.0 / 60)
+    #expect(external.contains(sim.duck.position))
+    sim.sensors.screens.removeLast()
+    sim.sensors.mouse = CGPoint(x: 1439, y: 135)
+    sim.run(20, every: 1.0 / 60)
+    #expect(sim.sensors.screens[0].frame.contains(sim.duck.position))
+}
+
+@Test func anAsleepFollowDuckOnARemovedScreenMovesToAConnectedOne() {
+    var sim = Sim()
+    let main = sim.sensors.screens[0]
+    let external = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+    sim.sensors.screens = [Screen(frame: external, visible: external), main]
+    sim.sensors.mouse = CGPoint(x: 2000, y: 400)
+    sim.run(61 * minute)
+    sim.run(Timings.normal.awayAfter + 1, idle: true)
+    #expect(sim.duck.phase == .asleep(.follow))
+    sim.sensors.screens = [main]
+    sim.run(20, idle: true)
+    #expect(main.frame.contains(sim.duck.position))
+}
+
+@Test(arguments: [(3, 29), (10, 25)])
+func nextStartKeepsTheClockHourOnDaylightSavingDays(month: Int, day: Int) {
+    var cal = Calendar(identifier: .gregorian)
+    cal.timeZone = TimeZone(identifier: "Europe/Ljubljana")!
+    let hours = WorkHours(calendar: cal)
+    let night = cal.date(from: DateComponents(year: 2026, month: month, day: day, hour: 0, minute: 30))!
+    let start = hours.nextStart(after: night)!
+    #expect(cal.dateComponents([.day, .hour, .minute], from: start) == DateComponents(day: day, hour: 8, minute: 0))
+}
