@@ -115,6 +115,17 @@ let minute: TimeInterval = 60
     #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
+@Test func duckComesOnTheMainScreenWhereverTheCursorIs() {
+    var sim = Sim()
+    let other = CGRect(x: -1440, y: -400, width: 1440, height: 2560)
+    sim.sensors.screens.append(Screen(frame: other, visible: other))
+    sim.sensors.mouse = CGPoint(x: -700, y: 500)
+    sim.run(45 * minute)
+    sim.run(3, every: 1.0 / 60)
+    #expect(sim.duck.phase == .waiting(.chill, nil))
+    #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 80))
+}
+
 @Test func followDuckStopsBesideTheCursorAndFacesIt() {
     var sim = Sim()
     sim.run(60 * minute)

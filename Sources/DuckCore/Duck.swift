@@ -184,7 +184,7 @@ public struct Duck: Sendable {
     }
 
     private mutating func enter(_ now: Date, _ s: Sensors) {
-        guard let screen = s.screens.first(where: { $0.frame.contains(s.mouse) }) ?? s.screens.first else { return }
+        guard let screen = s.screens.first else { return }
         stage = screen.visible
         position = CGPoint(x: stage.maxX + Motion.offscreen, y: stage.minY)
         home = CGPoint(x: stage.maxX - Motion.homeInset, y: stage.minY)

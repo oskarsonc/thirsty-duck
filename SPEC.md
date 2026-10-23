@@ -120,7 +120,7 @@ enum DuckPhase {
 
   Keep the pure logic (reminder clock, away detection, work hours, level timing, phase changes) separate from AppKit and SwiftUI, so it can be tested with a fake clock. Add a few unit tests for that logic (`swift test`), for example: thirst rises every level step; away time does not count; a long break resets the clock; off-hours do not start a reminder; a click resets the clock.
 
-- Coordinates: AppKit global screen coordinates (origin bottom-left of the main screen). Use the screen that holds the mouse when the reminder starts. In Follow, the duck can cross screens.
+- Coordinates: AppKit global screen coordinates (origin bottom-left of the main screen). The duck always comes on the main screen (the one with the menu bar). In Follow, the duck can cross screens.
 - Keep the code small and plain. No third-party packages. No sound. No settings window.
 
 ## Files

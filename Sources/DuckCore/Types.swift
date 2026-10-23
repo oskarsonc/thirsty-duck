@@ -71,6 +71,7 @@ public struct Screen: Sendable {
 public struct Sensors: Sendable {
     public var idleSeconds: TimeInterval
     public var mouse: CGPoint
+    /// The first screen is the main screen, the one with the menu bar.
     public var screens: [Screen]
 
     public init(idleSeconds: TimeInterval, mouse: CGPoint, screens: [Screen]) {
