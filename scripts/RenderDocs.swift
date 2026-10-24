@@ -96,6 +96,51 @@ func writePNG(_ img: CGImage, _ url: URL) {
     writePNG(image(sheet, scale: 2), docs.appendingPathComponent("stages.png"))
 }
 
+// MARK: - Looks sheet
+
+@MainActor func renderLooks() {
+    let looks: [Look] = [
+        Look(palette: .classic, hat: .cap, glasses: .sunglasses, outfit: .hoodie),
+        Look(palette: .mint, hat: .party, outfit: .bowTie),
+        Look(palette: .bubblegum, hat: .bow, glasses: .heart, outfit: .tutu),
+        Look(palette: .sky, hat: .sailor, outfit: .sailorTop, item: .fish),
+        Look(palette: .charcoal, hat: .topHat, glasses: .monocle, outfit: .tuxedo),
+        Look(palette: .golden, hat: .crown, outfit: .goldChain),
+        Look(palette: .ocean, hat: .bucket, glasses: .swimGoggles, outfit: .swimRing),
+        Look(palette: .strawberry, hat: .beanie, outfit: .stripedSweater, item: .balloon),
+        Look(palette: .cow, hat: .cowboy, outfit: .bandana),
+        Look(palette: .galaxy, hat: .witch, outfit: .cape),
+        Look(palette: .lavender, outfit: .raincoat, item: .umbrella),
+        Look(palette: .lime, hat: .propeller, glasses: .nerd, outfit: .backpack, item: .skateboard),
+    ]
+    let frames = looks.map { look in
+        var pose = standing
+        // DuckCore lifts the duck onto its skateboard.
+        if look.item == .skateboard { pose.lift += 10 }
+        return Frame(pose: pose, facingRight: true, effect: .none, bubble: nil, bubbleScale: 1, look: look,
+                     particles: [], lookClock: look.isAnimated ? 7 : 0, waterPhase: 0)
+    }
+    let sheet = VStack(spacing: 0) {
+        ForEach(0..<2) { row in
+            HStack(spacing: 0) {
+                ForEach(0..<6) { col in
+                    let f = frames[row * 6 + col]
+                    VStack(spacing: 0) {
+                        DuckView(frame: f).frame(width: 150, height: 132, alignment: .bottom).clipped()
+                        Text(f.look.palette.rawValue.capitalized + (f.look.palette.isRare ? " · rare" : ""))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color(hex: 0x5B6B7F))
+                            .padding(.bottom, 14)
+                    }
+                }
+            }
+        }
+    }
+    .padding(.horizontal, 15)
+    .background(Color(hex: 0xEEF5FD))
+    writePNG(image(sheet, scale: 2), docs.appendingPathComponent("looks.png"))
+}
+
 // MARK: - Demo animation
 
 private let sceneSize = CGSize(width: 720, height: 300)
@@ -312,5 +357,6 @@ struct AppIcon: View {
 MainActor.assumeIsolated {
     renderIcon()
     renderStages()
+    renderLooks()
     renderDemo()
 }

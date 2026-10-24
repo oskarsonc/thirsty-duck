@@ -16,6 +16,8 @@
 ## Features
 
 - **Native and light.** A Swift menu bar app with no dependencies, no network, and no permissions. It uses almost no CPU while it waits, and it draws a new frame only when the duck changes.
+- **A new look every time.** Each time the duck comes, it has a new random mix of 20 colors (5 of them rare), 22 hats, 12 glasses, 18 outfits and 9 things to hold, and it does a spin to show it.
+- **About 40 moves.** Moonwalk, backflip, dance, swim, sneeze, push-ups and more. Each thirst stage picks moves that fit it.
 - **Gets more thirsty.** Four levels, five minutes apart. At level 4 it follows your cursor until you click it.
 - **Counts only real computer time.** The clock stops when you are away, and a long break starts it again from zero.
 - **Stays out of your way.** Only the duck takes clicks; everything around it works as normal. No Dock icon, no keyboard focus, no sound.
@@ -26,14 +28,20 @@
 
 | Stage | When | What the duck does |
 |---|---|---|
-| 1 · Chill | After 30 minutes of computer use | Walks in from the right, sits on the bottom edge of the screen, and does small tricks: blink, hop, wiggle, peck, a short stroll. Sometimes asks `💧?` |
-| 2 · Ask | 5 minutes later | Walks a little toward the middle and says `drink! 💧` |
-| 3 · Thirsty | 10 minutes later | Sweats and shakes: `so thirsty… 💧💧` |
+| 1 · Chill | After 30 minutes of computer use | Walks in from the right, sits on the bottom edge of the screen, does a spin to show its look, and then does tricks: hop, wiggle, moonwalk, backflip, dance, swim, sunbathe, and many more. Sometimes asks `💧?` |
+| 2 · Ask | 5 minutes later | Walks a little toward the middle and says `drink! 💧`. Waves, quacks, drinks from a bottle, does push-ups. |
+| 3 · Thirsty | 10 minutes later | Sweats and shakes: `so thirsty… 💧💧`. Gets dizzy, shivers, trips. |
 | 4 · Follow | 15 minutes later | Follows your cursor across screens: `DRINK WATER! 🥵`. It waits when you move toward it, so you can click it. |
 | Asleep | 5 minutes with no mouse or keyboard input | Naps where it is. The clock and the thirst stop until you come back. |
 | Thank you | You click the duck | Happy hop, `thank you! 💛`, and it walks off. The clock starts again. |
 
 By default the duck comes every day between 08:00 and 23:00; change it in **Active hours**. A break of 30 minutes or more (idle time and Mac sleep together) starts the clock again from zero.
+
+## Looks
+
+![Twelve sample looks: colors, hats, glasses, outfits and things to hold](docs/looks.png)
+
+Every time the duck comes, it gets a new mix that is different from the last one. A rare color (golden, rainbow, galaxy, ghost, or robot) comes about 1 time in 16. Golden shines, rainbow moves, galaxy twinkles, and the ghost floats. There is no collection to fill; it is only a surprise. **New look now** in the menu gives the duck a new look at once.
 
 ## Install
 
@@ -62,6 +70,7 @@ The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple 
 |---|---|
 | *Next duck in 12 min* | The first line shows when the next duck comes, that the duck is here, or *Off until 08:00*. |
 | **Call the duck now** | Brings the duck at once. Good for a first look. |
+| **New look now** | Gives the duck a new look at once, with a spin. Only while the duck is on screen and not walking off. |
 | **Remind every** | 20, 30, 45 or 60 minutes of computer use. |
 | **Active hours** | When the duck may come: **Starts at** 06:00–12:00, **Ends at** 16:00–24:00, and **Weekends** on or off. |
 | **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. |

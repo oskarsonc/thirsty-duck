@@ -12,6 +12,10 @@ Each appearance has a new random look. A look combines one of 20 palettes with o
 
 Golden, rainbow, galaxy, and ghost palettes are animated, as are the propeller cap, halo, scarf, and cape. A skateboard lifts the duck 10 pt. The ghost adds a float of `3 + 3 sin(2.2 w)` pt, where `w` is seconds since the Foundation reference date. The bubble rises by the look's headroom (5 pt per row).
 
+The app draws the look from the design prototype's art (`Sprite.swift`): tables of colored rows for the palettes (with their patterns and eye colors), hats, glasses, outfits (recolored body cells and art behind and in front), held items, and the drink bottle. Layers, back to front: outfit back, item back, body, outfit front, glasses, hat, item front, bottle. An umbrella hides the hat. Art may sit outside the 16 x 14 body: rows -8 to 15, columns -6 to 19. `Frame.lookClock` (12 per second) moves the propeller, halo (bobs one cell), scarf, cape, golden shine and sparkles, rainbow, and galaxy stars. The ghost is drawn at 72% opacity.
+
+`DuckView` draws only from `Frame`, with no timers or SwiftUI animations. Tilt, spin (around the point 35 pt above the feet), and scale are in the duck's own space, inside the mirror. `dx`, jitter, and lift move the sprite; `sink` moves it down. Move particles are emoji placed from the point under the feet. A puddle is a blue ellipse on the ground. The swim water is a wavy pond in front of the duck, with two ripples. Peekaboo clips the sprite at the ground line. The shadow follows `dx`, gets smaller as the duck rises, and is hidden in the water and deep in peekaboo.
+
 Colors: `Y #FFD43B` body, `D #FAB005` wing, `O #FF922B` beak and feet, `K #2B2B2B` eye, `W #FFFFFF` eye shine, `P #FF8FA3` blush.
 
 Body map, 16 columns x 12 rows, facing right, `.` is transparent:
@@ -108,6 +112,7 @@ workHours        = 08:00-23:00
 
 A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
 - `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user). It first ends any break, then counts as input.
+- `New look now`, right under it, also in fast mode: sends `newLook`. Enabled only when `Duck.canChangeLook`.
 - A disabled first line with the status (`Duck.status`): `Next duck in N min` (rounded up), `The duck is here 🦆`, or `Off until HH:MM` (with the weekday if it is not today or tomorrow).
 - `Active hours` submenu: `Starts at` 06:00-12:00, `Ends at` 16:00-24:00, and a `Weekends` toggle. Saved; sets `workHours`. Hidden in fast mode.
 - `Remind every` submenu: 20, 30, 45 or 60 min. The choice is saved and sets `reminderInterval`. Hidden in fast mode.
