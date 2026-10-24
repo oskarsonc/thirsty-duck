@@ -70,7 +70,7 @@ The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple 
 |---|---|
 | *Next duck in 12 min* | The first line shows when the next duck comes, that the duck is here, or *Off until 08:00*. |
 | **Call the duck now** | Brings the duck at once. Good for a first look. |
-| **New look now** | Gives the duck a new look at once, with a spin. Only while the duck is on screen and not walking off. |
+| **New look now** | Gives the duck a new look at once. A duck that stands still does a spin to show it. Works while the duck is on screen, but not after you click it. |
 | **Remind every** | 20, 30, 45 or 60 minutes of computer use. |
 | **Active hours** | When the duck may come: **Starts at** 06:00–12:00, **Ends at** 16:00–24:00, and **Weekends** on or off. |
 | **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. |
