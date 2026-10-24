@@ -4,22 +4,29 @@ import SwiftUI
 struct DuckView: View {
     let frame: Frame
 
+    private var pose: Pose { frame.pose }
     private var groundY: CGFloat { Layout.panel.height - Layout.ground }
     private var spriteTop: CGFloat { groundY - Sprite.size.height }
-    private var headX: CGFloat { Layout.panel.width / 2 + (frame.facingRight ? 3 : -3) }
+    private var headX: CGFloat { Layout.panel.width / 2 + pose.dx + (frame.facingRight ? 3 : -3) }
+    /// The point under the feet after `lift`, `dx` and jitter. Particles are placed from here.
+    private var feet: CGPoint { CGPoint(x: Layout.panel.width / 2 + pose.dx + pose.jitter, y: groundY - pose.lift) }
+    private var lookTime: Double { Double(frame.lookClock) / 12 }
 
     var body: some View {
-        let pose = frame.pose
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 1.5)
-                .fill(.black.opacity(0.13))
-                .frame(width: 49, height: 3)
-                .position(x: Layout.panel.width / 2 + (frame.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
+            Canvas { ctx, _ in
+                drawGround(ctx)
+                drawSprite(ctx)
+                drawWater(ctx)
+            }
+            .frame(width: Layout.panel.width, height: Layout.panel.height)
 
-            SpriteView(eyes: pose.eyes, step: pose.feet == .b ? 1 : 0)
-                .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
-                .scaleEffect(x: pose.mirrored ? -1 : 1, y: 1)
-                .position(x: Layout.panel.width / 2 + pose.jitter, y: groundY - Sprite.size.height / 2 - pose.lift)
+            ForEach(Array(particles.enumerated()), id: \.offset) { _, p in
+                Text(p.emoji).font(.system(size: (p.size * 1.1).rounded()))
+                    .foregroundStyle(Color(hex: 0x5B6B7F))
+                    .opacity(max(0, min(1, p.opacity)))
+                    .position(x: feet.x + p.x, y: feet.y - p.y)
+            }
 
             extras
 
@@ -29,10 +36,67 @@ struct DuckView: View {
                     BubbleView(bubble: bubble)
                         .scaleEffect(frame.bubbleScale, anchor: .bottom)
                 }
-                .frame(width: Layout.panel.width, height: spriteTop - Layout.bubbleGap)
+                .frame(width: Layout.panel.width, height: spriteTop - Layout.bubbleGap - CGFloat(frame.look.headroom) * 5)
             }
         }
         .frame(width: Layout.panel.width, height: Layout.panel.height)
+    }
+
+    private var particles: [Particle] {
+        frame.particles + (Sprite.paint(frame.look.palette).sparkles ? Sprite.sparkles(t: lookTime) : [])
+    }
+
+    private func drawGround(_ ctx: GraphicsContext) {
+        if pose.puddle {
+            ctx.fill(Path(ellipseIn: CGRect(x: Layout.panel.width / 2 - 75, y: groundY - 3, width: 150, height: 8)),
+                     with: .color(Color(hex: 0x74C0FC).opacity(0.6)))
+        }
+        guard !pose.water, !(pose.clipsAtGround && pose.sink > 40) else { return }
+        let width = 49 * max(0.45, 1 - pose.lift / 60)
+        let x = Layout.panel.width / 2 + pose.dx + (frame.facingRight ? 1.5 : -1.5)
+        ctx.fill(Path(roundedRect: CGRect(x: x - width / 2, y: groundY, width: width, height: 3), cornerRadius: 1.5),
+                 with: .color(.black.opacity(0.13)))
+    }
+
+    /// Tilt, spin and scale are in the duck's own space, so they go inside the mirror.
+    private func drawSprite(_ ctx: GraphicsContext) {
+        var ctx = ctx
+        if pose.clipsAtGround {
+            ctx.clip(to: Path(CGRect(x: 0, y: 0, width: Layout.panel.width, height: groundY + 1)))
+        }
+        ctx.opacity = Sprite.paint(frame.look.palette).opacity
+        ctx.drawLayer { ctx in
+            ctx.translateBy(x: feet.x, y: feet.y + pose.sink)
+            ctx.scaleBy(x: pose.mirrored ? -1 : 1, y: 1)
+            ctx.rotate(by: .degrees(pose.tilt))
+            ctx.translateBy(x: 0, y: -35)
+            ctx.rotate(by: .degrees(pose.spin))
+            ctx.translateBy(x: 0, y: 35)
+            ctx.scaleBy(x: pose.scaleX, y: pose.scaleY)
+            Sprite.fill(Sprite.pixels(frame.look, pose, t: lookTime), in: ctx, smooth: pose.tilt != 0 || pose.spin != 0)
+        }
+    }
+
+    private func drawWater(_ ctx: GraphicsContext) {
+        guard pose.water else { return }
+        var ctx = ctx
+        // A pond with round ends, wide enough for the swim's sway, instead of a band across the whole panel.
+        ctx.clip(to: Path(ellipseIn: CGRect(x: Layout.panel.width / 2 - 80, y: groundY - 20, width: 160, height: 48)))
+        var band = Path()
+        band.move(to: CGPoint(x: 0, y: Layout.panel.height))
+        for x in stride(from: 0, through: Layout.panel.width, by: 4) {
+            band.addLine(to: CGPoint(x: x, y: groundY - 12 + 2 * sin(x / 9 + frame.waterPhase)))
+        }
+        band.addLine(to: CGPoint(x: Layout.panel.width, y: Layout.panel.height))
+        ctx.fill(band, with: .color(Color(hex: 0x4DABF7).opacity(0.82)))
+        for i in 0..<2 {
+            let k = (frame.waterPhase / 4 * 0.6 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+            let r = CGSize(width: 30 + k * 40, height: 3 + k * 3)
+            var ring = ctx
+            ring.opacity = 1 - k
+            ring.stroke(Path(ellipseIn: CGRect(x: feet.x - r.width, y: groundY - 8 - r.height, width: 2 * r.width, height: 2 * r.height)),
+                        with: .color(.white.opacity(0.7)), lineWidth: 1.5)
+        }
     }
 
     @ViewBuilder private var extras: some View {

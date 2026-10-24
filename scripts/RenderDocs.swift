@@ -34,6 +34,9 @@ struct Sim {
     var frame: Frame { duck.frame(at: now) }
 }
 
+/// A duck that stands still and faces right. The duck is hidden, so nothing moves it.
+let standing = Pose(duck: Duck(timings: .fast, seed: 0), now: Date(timeIntervalSinceReferenceDate: 0))
+
 @MainActor func image(_ view: some View, scale: CGFloat) -> CGImage {
     let r = ImageRenderer(content: view)
     r.scale = scale
@@ -52,22 +55,30 @@ func writePNG(_ img: CGImage, _ url: URL) {
     let screen = Screen(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visible: CGRect(x: 0, y: 0, width: 1440, height: 875))
     var sim = Sim(timings: .fast, screen: screen)
     var shots: [(String, Frame)] = []
+    // The sheet shows the classic duck. A look that changes the lift would not match it.
+    func shot() -> Frame {
+        var f = sim.frame
+        precondition(f.look.palette != .ghost && f.look.item != .skateboard)
+        f.look = .classic
+        f.lookClock = 0
+        return f
+    }
     sim.send(.callNow)
     sim.until { $0.phase == .waiting(.chill, nil) && $0.bubble != nil }
     for _ in 0..<24 { sim.tick() }
-    shots.append(("1 · chill", sim.frame))
+    shots.append(("1 · chill", shot()))
     for (label, level) in [("2 · ask", Thirst.ask), ("3 · thirsty", .thirsty), ("4 · follow", .follow)] {
         sim.until { $0.phase == .waiting(level, nil) }
         for _ in 0..<24 { sim.tick() }
-        shots.append((label, sim.frame))
+        shots.append((label, shot()))
     }
     for _ in 0..<336 { sim.tick(idle: true) }
-    shots.append(("away · asleep", sim.frame))
+    shots.append(("away · asleep", shot()))
     sim.until { $0.phase == .waiting(.follow, nil) }
     for _ in 0..<24 { sim.tick() }
     sim.send(.click)
     for _ in 0..<14 { sim.tick() }
-    shots.append(("click · thank you", sim.frame))
+    shots.append(("click · thank you", shot()))
 
     let sheet = HStack(spacing: 0) {
         ForEach(Array(shots.enumerated()), id: \.offset) { _, shot in
@@ -276,8 +287,12 @@ struct AppIcon: View {
             RoundedRectangle(cornerRadius: side * 0.225, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: 0x8FD0FF), Color(hex: 0x3D8FE0)], startPoint: .top, endPoint: .bottom))
                 .frame(width: side, height: side)
-            SpriteView(eyes: .open, step: 0)
-                .scaleEffect(side * 0.62 / Sprite.size.width)
+            Canvas { ctx, _ in
+                ctx.translateBy(x: Sprite.size.width / 2, y: Sprite.size.height)
+                Sprite.fill(Sprite.pixels(.classic, standing, t: 0), in: ctx, smooth: false)
+            }
+            .frame(width: Sprite.size.width, height: Sprite.size.height)
+            .scaleEffect(side * 0.62 / Sprite.size.width)
                 .offset(x: -side * 0.02, y: side * 0.04)
         }
         .frame(width: size, height: size)
