@@ -16,6 +16,8 @@ public struct Duck: Sendable {
     public private(set) var bubble: Bubble?
     public private(set) var bubbleSince: Date = .distantPast
 
+    public private(set) var look: Look = .classic
+
     private var stage: CGRect = .zero
     /// The frame of the screen the duck came in on. If it goes away or changes, the duck moves to a connected screen.
     private var stageFrame: CGRect = .zero
@@ -41,6 +43,13 @@ public struct Duck: Sendable {
 
     public var isVisible: Bool { phase != .hidden }
 
+    public var canChangeLook: Bool {
+        switch phase {
+        case .entering, .waiting, .moving, .asleep: true
+        case .hidden, .happy, .leaving: false
+        }
+    }
+
     public func status(at now: Date) -> DuckStatus {
         if isVisible { return .here }
         if let hours = timings.workHours, !hours.contains(now) { return .offUntil(hours.nextStart(after: now)) }
@@ -63,6 +72,9 @@ public struct Duck: Sendable {
     private func bubble(at now: Date) -> Bubble? {
         switch phase {
         case .entering(let t), .moving(let t), .waiting(let t, _):
+            if t <= .ask, let speech = Pose(duck: self, now: now).speech {
+                return Bubble(text: speech, alarm: false)
+            }
             switch t {
             case .chill:
                 let t = now.timeIntervalSince(shownAt).truncatingRemainder(dividingBy: Motion.chillBubbleCycle)
@@ -80,6 +92,14 @@ public struct Duck: Sendable {
         switch input {
         case .click: click(now)
         case .callNow: callNow(now, sensors)
+        case .newLook:
+            if canChangeLook {
+                look = Look.random(using: &rng, unlike: look)
+                if case .waiting(let t, _) = phase {
+                    lastTrick = .spin
+                    set(.waiting(t, .spin), now)
+                }
+            }
         case .sleep where !macAsleep:
             tick(now, sensors)
             macAsleep = true
@@ -205,6 +225,7 @@ public struct Duck: Sendable {
     private mutating func enter(_ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first else { return }
         takeStage(screen)
+        look = Look.random(using: &rng, unlike: look)
         position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
         facingRight = false
         shownAt = now
@@ -261,8 +282,11 @@ public struct Duck: Sendable {
         case .follow: facingRight = s.mouse.x > position.x
         case .ask, .thirsty: break
         }
-        set(.waiting(t, t == .follow ? .shake : nil), now)
-        scheduleTrick(t, now)
+        let entering: Bool
+        if case .entering = phase { entering = true } else { entering = false }
+        let trick: Trick? = entering ? .spin : t == .follow ? .shake : nil
+        set(.waiting(t, trick), now)
+        if let trick { lastTrick = trick } else { scheduleTrick(t, now) }
     }
 
     private func target(_ t: Thirst, _ s: Sensors) -> CGPoint {
@@ -311,8 +335,9 @@ public struct Duck: Sendable {
     }
 
     private mutating func pickTrick(_ t: Thirst) -> Trick {
-        let allowed = t.tricks.filter { trick in
-            if trick == lastTrick && t.tricks.count > 1 { return false }
+        let pool = Double.random(in: 0..<1, using: &rng) < t.oldTrickWeight ? t.oldTricks : t.newTricks
+        let allowed = pool.filter { trick in
+            if trick == lastTrick && pool.count > 1 { return false }
             guard case .stroll(let right) = trick else { return true }
             let end = position.x + (right ? 1 : -1) * Motion.strollSpeed * trick.duration
             return end > stage.minX + Motion.homeInset / 2 && end < stage.maxX - Motion.homeInset / 2

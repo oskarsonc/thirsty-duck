@@ -101,7 +101,7 @@ let minute: TimeInterval = 60
     sim.run(45 * minute)
     #expect(sim.duck.position.x > 1440)
     sim.run(3, every: 1.0 / 60)
-    #expect(sim.duck.phase == .waiting(.chill, nil))
+    #expect(sim.duck.phase == .waiting(.chill, .spin))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
     #expect(!sim.duck.facingRight)
 }
@@ -112,6 +112,7 @@ let minute: TimeInterval = 60
     sim.run(4 * minute, every: 0.05)
     #expect(sim.duck.phase.isWaiting(.ask))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset - Motion.askWalk, y: 0))
+    sim.run(until: .waiting(.ask, nil))
     #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
@@ -122,7 +123,7 @@ let minute: TimeInterval = 60
     sim.sensors.mouse = CGPoint(x: -700, y: 500)
     sim.run(45 * minute)
     sim.run(3, every: 1.0 / 60)
-    #expect(sim.duck.phase == .waiting(.chill, nil))
+    #expect(sim.duck.phase == .waiting(.chill, .spin))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
 }
 

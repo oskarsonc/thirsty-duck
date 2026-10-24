@@ -6,7 +6,11 @@ Owner wants: native, light, cute, no extra features.
 
 ## Character
 
-The pixel duckling from `design-preview.html` (the `pixel` entry in `DUCKS`). Keep these exact pixels and colors.
+The pixel duckling from `design-preview.html` (the `pixel` entry in `DUCKS`) is the classic look. Keep its exact pixels and colors.
+
+Each appearance has a new random look. A look combines one of 20 palettes with optional hats (22), glasses (12), outfits (18), and held items (9), in prototype order. Five palettes are rare: golden, rainbow, galaxy, ghost, and robot. A draw selects a rare palette 6% of the time; otherwise it selects a common palette. Each group is uniform. Held items appear 18% of the time, hats 70%, glasses 35%, and outfits 60%. An umbrella prevents a hat. Draw again if the full look matches the previous one.
+
+Golden, rainbow, galaxy, and ghost palettes are animated, as are the propeller cap, halo, scarf, and cape. A skateboard lifts the duck 10 pt. The ghost adds a float of `3 + 3 sin(2.2 w)` pt, where `w` is seconds since the Foundation reference date. The bubble rises by the look's headroom (5 pt per row).
 
 Colors: `Y #FFD43B` body, `D #FAB005` wing, `O #FF922B` beak and feet, `K #2B2B2B` eye, `W #FFFFFF` eye shine, `P #FF8FA3` blush.
 
@@ -51,10 +55,23 @@ The duck comes once every `reminderInterval` of active work time. Then thirst go
 
 | Level | Where the duck is | What it does | Bubble |
 |---|---|---|---|
-| 1 Chill | Walks in from the right edge along the real bottom edge of the screen (`frame.minY`, not on top of the Dock, because the Dock may not reach that far) and sits about 140 pt from that edge. | Chills. Every few seconds it does one small trick, picked at random so it changes: blink, look the other way (flip), hop, wiggle, peck (lean forward), short stroll left or right. | Shows `💧?` now and then, for 3 s. |
-| 2 Ask | Walks 300 pt along the bottom toward the middle of the screen (not past the middle), so it stays clear of a bottom Dock. | Tricks are more about asking: hop, wiggle, hop-hop. | `drink! 💧`, always shown. |
-| 3 Thirsty | Stays at the bottom. | Sweat drops, shakes now and then, droopy (no hops). | `so thirsty… 💧💧`, red style. |
+| 1 Chill | Walks in from the right edge along the real bottom edge of the screen (`frame.minY`, not on top of the Dock, because the Dock may not reach that far) and sits about 140 pt from that edge. | Starts with a spin when the entering walk ends, to show the new look. Then picks a move from the stage table below. | Shows `💧?` now and then, for 3 s, except during move speech. |
+| 2 Ask | Walks 300 pt along the bottom toward the middle of the screen (not past the middle), so it stays clear of a bottom Dock. | Picks asking moves from the stage table below. | `drink! 💧`, except during move speech. |
+| 3 Thirsty | Stays at the bottom. | Sweat drops and moves from the stage table below. | `so thirsty… 💧💧`, red style. |
 | 4 Follow | Leaves the bottom and follows the mouse cursor anywhere on any screen. It stops about 60 pt beside the cursor so it never covers what the user points at, and faces the cursor. Once it stops, it walks again only when the cursor is more than 120 pt from its feet, so a cursor that comes toward it to click it does not push it away. The duck and its bubble, at the top of the pop, stay on the cursor's screen and under its menu bar. On a screen smaller than that, the duck's feet stay on it. | Walks (feet and bob) while moving, shakes when it stops. Sweat drops. | `DRINK WATER! 🥵` |
+
+Stage move selection:
+
+| Stage | Existing moves | New moves | Existing / new weight |
+|---|---|---|---|
+| Chill | blink, lookBack, hop, wiggle, peck, stroll | moonwalk, spin, backflip, roll, wave, hover, dance, tapDance, jelly, yawn, quack, loaf, lookAround, puddleJump, swim, bow, peekaboo, love, kick, sleepyNod, jumpSpin, skate, juggle, sunbathe | 50% / 50% |
+| Ask | hop, wiggle, hopHop | wave, quack, drink, pushUps, zoomies, sneeze, headbang, puddleJump | 50% / 50% |
+| Thirsty | shake, blink | dizzy, shiver, trip, sneeze, zoomies | 60% / 40% |
+| Follow | shake | none | 100% / 0% |
+
+Each move owns its duration. The gap before the next move starts when the current move ends. Zoomies stays within 45 pt of the resting position on each side. Move speech (`hi!`, `yaawn`, `achoo!`, `quack!`, `glug glug`, `ahh 💙`, `💪`, `brrr`, `boo!`, `oops!`) replaces the stage bubble at Chill and Ask. Thirsty keeps its stage bubble and sweat.
+
+The `newLook` input changes the look while entering, waiting, moving, or asleep. It starts a spin at once when waiting. Hidden, happy, and leaving ducks ignore it. `Duck.canChangeLook` reports the same rule. The look uses the duck's seeded random generator.
 
 Click on the duck in any level means "I drank":
 - Happy eyes, hop twice, `💧 💛 ✨` float up, bubble `thank you! 💛`.
@@ -104,8 +121,8 @@ No Dock icon (`LSUIElement`).
 
 - Swift 6, SwiftUI for drawing, AppKit for the window. Swift Package Manager executable, built with Command Line Tools (no Xcode project). The machine has Swift 6.4 and macOS 27 SDK, Apple Silicon.
 - A `build.sh` that builds release and makes `build/Thirsty Duck.app` with an `Info.plist` (`LSUIElement=true`, bundle id `dev.oskar.thirstyduck`, minimum macOS 14), and ad-hoc signs it (`codesign -s -`).
-- Window: one small borderless, non-activating, transparent `NSPanel` that holds the duck and its bubble and moves with the duck (about 240 x 200 pt). Level `.statusBar` or above normal windows, `collectionBehavior` `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]`, no shadow, `hidesOnDeactivate = false`. Clicks on transparent parts must pass through to the app below. Hide the window when the duck is away.
-- One `Timer` on the main run loop in common modes drives everything. The duck says how often it needs a tick (`Duck.tickRate`): 30 Hz while it walks, hops, shakes, pops a bubble or is happy, 10 Hz while it sits, blinks or sweats, 2 Hz asleep, and 1 Hz hidden. The app redraws only when the picture (`Duck.frame`) changes. The CPU use must be close to zero while the duck is hidden.
+- Window: one small borderless, non-activating, transparent `NSPanel` that holds the duck and its bubble and moves with the duck (240 x 240 pt). Level `.statusBar` or above normal windows, `collectionBehavior` `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]`, no shadow, `hidesOnDeactivate = false`. Clicks on transparent parts must pass through to the app below. Hide the window when the duck is away.
+- One `Timer` on the main run loop in common modes drives everything. The duck says how often it needs a tick (`Duck.tickRate`): 30 Hz while it walks, does a new move, hops, shakes, pops a bubble or is happy, 10 Hz while it sits, blinks, sweats, or shows an animated look, 2 Hz asleep, and 1 Hz hidden. The app redraws only when the picture (`Duck.frame`) changes. The CPU use must be close to zero while the duck is hidden.
 - Model the duck as a state machine, not as booleans. Suggested shape:
 
 ```swift

@@ -39,7 +39,7 @@ enum Sprite {
     static func grid(eyes: Eyes, step: Int) -> [[Character]] {
         var g = body.map(Array.init) + Array(repeating: Array(repeating: ".", count: 16), count: 2)
         switch eyes {
-        case .open:
+        case .open, .x, .wide, .focus:
             break
         case .closed:
             for (r, c) in eyeCells { g[r][c] = "Y" }

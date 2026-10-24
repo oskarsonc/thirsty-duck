@@ -16,7 +16,7 @@ struct DuckView: View {
                 .frame(width: 49, height: 3)
                 .position(x: Layout.panel.width / 2 + (frame.facingRight ? 1.5 : -1.5), y: groundY + 1.5)
 
-            SpriteView(eyes: pose.eyes, step: pose.step)
+            SpriteView(eyes: pose.eyes, step: pose.feet == .b ? 1 : 0)
                 .rotationEffect(.degrees(pose.tilt), anchor: .bottom)
                 .scaleEffect(x: pose.mirrored ? -1 : 1, y: 1)
                 .position(x: Layout.panel.width / 2 + pose.jitter, y: groundY - Sprite.size.height / 2 - pose.lift)

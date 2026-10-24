@@ -6,12 +6,32 @@ public enum Thirst: Int, Comparable, Sendable {
 
     public static func < (a: Thirst, b: Thirst) -> Bool { a.rawValue < b.rawValue }
 
-    var tricks: [Trick] {
+    var oldTricks: [Trick] {
         switch self {
         case .chill: [.blink, .lookBack, .hop, .wiggle, .peck, .stroll(right: false), .stroll(right: true)]
         case .ask: [.hop, .wiggle, .hopHop]
         case .thirsty: [.shake, .blink]
         case .follow: [.shake]
+        }
+    }
+
+    var newTricks: [Trick] {
+        switch self {
+        case .chill:
+            [.moonwalk, .spin, .backflip, .roll, .wave, .hover, .dance, .tapDance, .jelly, .yawn,
+             .quack, .loaf, .lookAround, .puddleJump, .swim, .bow, .peekaboo, .love, .kick,
+             .sleepyNod, .jumpSpin, .skate, .juggle, .sunbathe]
+        case .ask: [.wave, .quack, .drink, .pushUps, .zoomies, .sneeze, .headbang, .puddleJump]
+        case .thirsty: [.dizzy, .shiver, .trip, .sneeze, .zoomies]
+        case .follow: []
+        }
+    }
+
+    var oldTrickWeight: Double {
+        switch self {
+        case .chill, .ask: 0.5
+        case .thirsty: 0.6
+        case .follow: 1
         }
     }
 
@@ -28,6 +48,10 @@ public enum Thirst: Int, Comparable, Sendable {
 public enum Trick: Equatable, Sendable {
     case blink, lookBack, hop, wiggle, peck, stroll(right: Bool), hopHop, shake
 
+    case moonwalk, spin, backflip, roll, wave, hover, dance, tapDance, jelly, yawn, sneeze, quack
+    case headbang, loaf, lookAround, dizzy, puddleJump, swim, drink, zoomies, pushUps, bow
+    case shiver, peekaboo, love, kick, sleepyNod, jumpSpin, skate, trip, juggle, sunbathe
+
     public var duration: TimeInterval {
         switch self {
         case .blink: 0.25
@@ -38,6 +62,19 @@ public enum Trick: Equatable, Sendable {
         case .stroll: 1.5
         case .hopHop: 0.9
         case .shake: 0.6
+        case .moonwalk, .loaf, .sleepyNod, .sunbathe: 3.2
+        case .spin: 1.2
+        case .backflip, .jelly, .quack, .jumpSpin: 1.3
+        case .roll, .wave, .tapDance, .puddleJump: 1.8
+        case .hover, .yawn, .dizzy, .zoomies, .pushUps, .trip: 2.4
+        case .dance, .peekaboo: 2.8
+        case .sneeze: 1.9
+        case .headbang, .shiver: 1.6
+        case .lookAround, .juggle: 2.6
+        case .swim, .skate: 3
+        case .drink: 3.4
+        case .bow, .love: 2.2
+        case .kick: 1.4
         }
     }
 }
@@ -90,7 +127,7 @@ public struct Sensors: Sendable {
 }
 
 public enum DuckInput: Sendable {
-    case tick, click, callNow
+    case tick, click, callNow, newLook
     /// The Mac goes to sleep or wakes up (`NSWorkspace` notifications).
     case sleep, wake
 }
