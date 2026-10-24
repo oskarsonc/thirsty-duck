@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import DuckCore
 
-private func stageSim(_ thirst: Thirst = .chill, seed: UInt64 = 7) -> Sim {
+private func stageSim(_ thirst: Thirst = .chill, seed: UInt64 = 7, facingRight: Bool = false) -> Sim {
     var timings = Timings.test
     timings.workHours = nil
     timings.reminderInterval = 1
@@ -11,6 +11,11 @@ private func stageSim(_ thirst: Thirst = .chill, seed: UInt64 = 7) -> Sim {
     timings.longBreak = 1_000_000
     var sim = Sim(timings: timings)
     sim.duck = Duck(timings: sim.duck.timings, seed: seed)
+    if facingRight {
+        // On a narrow stage, the home is left of center and the Ask target is to its right.
+        let frame = CGRect(x: 0, y: 0, width: 200, height: 900)
+        sim.sensors.screens = [Screen(frame: frame, visible: frame)]
+    }
     sim.send(.tick)
     sim.send(.callNow)
     if thirst > .chill { sim.run(Double(thirst.rawValue - 1) * timings.levelStep, every: 100) }
@@ -35,9 +40,9 @@ private extension Sim {
         #expect(duck.phase == .waiting(thirst, nil))
     }
 
-    mutating func findMove(_ wanted: Trick) {
+    mutating func findMove(_ wanted: Trick, facingRight: Bool? = nil) {
         for _ in 0..<1_000 {
-            if nextMove() == wanted { return }
+            if nextMove() == wanted && (facingRight == nil || duck.facingRight == facingRight) { return }
             finishMove()
         }
         Issue.record("did not pick \(wanted)")
@@ -244,7 +249,122 @@ func moveSpeechReplacesOnlyTheFirstTwoStageBubbles(thirst: Thirst) {
     let pose = sim.duck.frame(at: sim.time.now).pose
     #expect(pose.item == .skateboard)
     #expect(pose.lift == 10)
-    #expect(abs(pose.dx - 30) < 0.0001)
+    #expect(abs(pose.dx - (sim.duck.facingRight ? 30 : -30)) < 0.0001)
+}
+
+@Test(arguments: [false, true])
+func moonwalkMovesBackwardForEitherFacing(facingRight: Bool) {
+    var sim = stageSim(facingRight: facingRight)
+    sim.findMove(.moonwalk, facingRight: facingRight)
+    let earlier = sim.duck.frame(at: sim.duck.phaseStart + Trick.moonwalk.duration * 0.25).pose
+    let later = sim.duck.frame(at: sim.duck.phaseStart + Trick.moonwalk.duration * 0.5).pose
+    if facingRight {
+        #expect(later.dx < 0)
+        #expect(later.dx < earlier.dx)
+    } else {
+        #expect(later.dx > 0)
+        #expect(later.dx > earlier.dx)
+    }
+}
+
+@Test(arguments: [false, true])
+func zoomiesRunsForwardThenBackWithDustBehind(facingRight: Bool) {
+    var sim = stageSim(.ask, facingRight: facingRight)
+    sim.findMove(.zoomies, facingRight: facingRight)
+    let direction: CGFloat = facingRight ? 1 : -1
+    let first = sim.duck.frame(at: sim.duck.phaseStart + Trick.zoomies.duration * 0.1)
+    let next = sim.duck.frame(at: sim.duck.phaseStart + Trick.zoomies.duration * 0.2)
+    #expect(abs(first.pose.dx - direction * 15) < 0.0001)
+    #expect(abs(next.pose.dx - direction * 30) < 0.0001)
+    #expect(first.pose.mirrored == !facingRight)
+    #expect(first.particles.count == 1)
+    #expect(first.particles.allSatisfy { $0.x * direction < 0 })
+    for progress in [0.4, 0.6] {
+        let back = sim.duck.frame(at: sim.duck.phaseStart + Trick.zoomies.duration * progress)
+        let expected: CGFloat = progress < 0.5 ? 22.5 : -22.5
+        #expect(abs(back.pose.dx - direction * expected) < 0.0001)
+        #expect(back.pose.mirrored == facingRight)
+        #expect(back.particles.count == 1)
+        #expect(back.particles.allSatisfy { $0.x * direction > 0 })
+    }
+}
+
+@Test(arguments: [false, true])
+func sneezeSpraysInFrontOfEitherFacing(facingRight: Bool) {
+    var sim = stageSim(.ask, facingRight: facingRight)
+    sim.findMove(.sneeze, facingRight: facingRight)
+    let frame = sim.duck.frame(at: sim.duck.phaseStart + Trick.sneeze.duration * 0.6)
+    #expect(frame.particles.count == 3)
+    for particle in frame.particles {
+        #expect(particle.emoji == "💦")
+        #expect(facingRight ? particle.x > 44 : particle.x < -44)
+    }
+}
+
+@Test(arguments: [false, true])
+func rollMovesForwardAndHitRegionFollows(facingRight: Bool) {
+    var sim = stageSim(facingRight: facingRight)
+    sim.findMove(.roll, facingRight: facingRight)
+    var frame = sim.duck.frame(at: sim.duck.phaseStart + Trick.roll.duration * 0.25)
+    #expect(abs(frame.pose.dx - (facingRight ? 12 : -12)) < 0.0001)
+    #expect(abs(frame.pose.spin - 180) < 0.0001)
+    frame.look = .classic
+    let region = Layout.hitRegions(frame, bubble: nil)[0]
+    #expect(abs(region.midX - (Layout.panel.width / 2 + frame.pose.dx)) < 0.0001)
+    #expect(abs(region.width - Layout.sprite.width) < 0.0001)
+    #expect(abs(region.height - Layout.sprite.height) < 0.0001)
+}
+
+@Test(arguments: [false, true])
+func skateOffsetsUseRealFacingDuringTheTurn(facingRight: Bool) {
+    var sim = stageSim(facingRight: facingRight)
+    sim.findMove(.skate, facingRight: facingRight)
+    let direction: CGFloat = facingRight ? 1 : -1
+    for progress in [0.125, 0.375, 0.625, 0.875] {
+        var frame = sim.duck.frame(at: sim.duck.phaseStart + Trick.skate.duration * progress)
+        #expect(progress < 0.5 ? frame.pose.dx * direction > 0 : frame.pose.dx * direction < 0)
+        let turned = progress > 0.25 && progress < 0.75
+        #expect(frame.pose.mirrored == (turned ? facingRight : !facingRight))
+        #expect(abs(frame.pose.tilt + 3 / sqrt(2)) < 0.0001)
+        frame.look = .classic
+        frame.pose.dx = 0
+        let centered = Layout.hitRegions(frame, bubble: nil)[0]
+        frame.pose = sim.duck.frame(at: sim.duck.phaseStart + Trick.skate.duration * progress).pose
+        let moved = Layout.hitRegions(frame, bubble: nil)[0]
+        #expect(abs(moved.minX - centered.minX - frame.pose.dx) < 0.0001)
+        #expect(abs(moved.maxX - centered.maxX - frame.pose.dx) < 0.0001)
+    }
+}
+
+@Test(arguments: [false, true])
+func tripStarsStayWhereTheHeadLands(facingRight: Bool) {
+    var sim = stageSim(.thirsty, facingRight: facingRight)
+    sim.findMove(.trip, facingRight: facingRight)
+    let frame = sim.duck.frame(at: sim.duck.phaseStart + Trick.trip.duration * 0.4)
+    #expect(frame.particles.count == 3)
+    #expect(frame.particles.allSatisfy { facingRight ? $0.x >= 44 : $0.x <= -44 })
+    #expect(frame.pose.tilt == 80)
+}
+
+@Test(arguments: [Trick.dance, .tapDance, .love, .juggle, .dizzy])
+func surroundingParticlesMirrorWithFacing(trick: Trick) {
+    let thirst: Thirst = trick == .dizzy ? .thirsty : .chill
+    var left = stageSim(thirst)
+    var right = stageSim(thirst, facingRight: true)
+    left.findMove(trick, facingRight: false)
+    right.findMove(trick, facingRight: true)
+    let now = max(left.time.now, right.time.now)
+    let leftParticles = left.duck.frame(at: now).particles
+    let rightParticles = right.duck.frame(at: now).particles
+    #expect(!leftParticles.isEmpty)
+    #expect(leftParticles.count == rightParticles.count)
+    for (a, b) in zip(leftParticles, rightParticles) {
+        #expect(a.x == -b.x)
+        #expect(a.emoji == b.emoji)
+        #expect(a.y == b.y)
+        #expect(a.size == b.size)
+        #expect(a.opacity == b.opacity)
+    }
 }
 
 @Test func seedMakesLooksAndMovesRepeat() {

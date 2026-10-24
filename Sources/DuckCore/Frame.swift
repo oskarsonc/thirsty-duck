@@ -384,6 +384,11 @@ public struct Pose: Equatable, Sendable {
         case .hidden, .entering, .moving:
             break
         }
+        // Prototype offsets face right; a trick's mirror flip must not change their panel-space direction.
+        if !duck.facingRight {
+            dx = -dx
+            for i in particles.indices { particles[i].x = -particles[i].x }
+        }
         if (item ?? duck.look.item) == .skateboard { lift += 10 }
         if duck.look.palette == .ghost { lift += 3 + 3 * sin(2.2 * w) }
     }
