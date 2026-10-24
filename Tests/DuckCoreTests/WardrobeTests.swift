@@ -469,3 +469,126 @@ func surroundingParticlesMirrorWithFacing(trick: Trick) {
     #expect(Look(palette: .classic, hat: .halo).isAnimated)
     #expect(Look(palette: .classic, outfit: .cape).isAnimated)
 }
+
+private func drawnPoint(_ point: CGPoint, pose: Pose) -> CGPoint {
+    let spin = pose.spin * .pi / 180
+    let tilt = pose.tilt * .pi / 180
+    let x = point.x * pose.scaleX
+    let y = point.y * pose.scaleY + 35
+    let spunX = x * cos(spin) - y * sin(spin)
+    let spunY = x * sin(spin) + y * cos(spin) - 35
+    let tiltedX = spunX * cos(tilt) - spunY * sin(tilt)
+    let tiltedY = spunX * sin(tilt) + spunY * cos(tilt)
+    return CGPoint(x: Layout.panel.width / 2 + pose.dx + pose.jitter + (pose.mirrored ? -tiltedX : tiltedX),
+                   y: Layout.ground + pose.lift - pose.sink - tiltedY)
+}
+
+private func expectArtAboveGround(_ bounds: CGRect, pose: Pose) {
+    var bounds = bounds
+    if pose.tilt != 0 || pose.spin != 0 {
+        bounds.size.width += 0.4
+        bounds.size.height += 0.4
+    }
+    for x in [bounds.minX, bounds.maxX] {
+        for y in [bounds.minY, bounds.maxY] {
+            #expect(drawnPoint(CGPoint(x: x, y: y), pose: pose).y >= Layout.ground - 0.0001)
+        }
+    }
+}
+
+@Test func leftFacingRollTakesClicksOnItsVisibleTopHat() {
+    var sim = stageSim(seed: 310)
+    #expect(sim.duck.look.hat == .topHat)
+    sim.findMove(.roll, facingRight: false)
+    let frame = sim.duck.frame(at: sim.duck.phaseStart + Trick.roll.duration / sqrt(32))
+    #expect(abs(frame.pose.spin - 90) < 0.0001)
+    let hat = drawnPoint(CGPoint(x: -7.5, y: -87.5), pose: frame.pose)
+    #expect(abs(hat.x - 61.5) < 0.0001)
+    #expect(Layout.hitRegions(frame, bubble: nil).contains { $0.contains(hat) })
+}
+
+@Test(arguments: [false, true])
+func witchHatRollKeepsEveryArtCornerAboveGround(facingRight: Bool) {
+    var sim = stageSim(seed: 4250, facingRight: facingRight)
+    #expect(sim.duck.look.hat == .witch)
+    sim.findMove(.roll, facingRight: facingRight)
+    for i in 0...100 {
+        let pose = sim.duck.frame(at: sim.duck.phaseStart + Trick.roll.duration * Double(i) / 100).pose
+        expectArtAboveGround(CGRect(x: -40, y: -100, width: 80, height: 100), pose: pose)
+    }
+}
+
+@Test(arguments: [false, true])
+func classicTripKeepsEveryArtCornerAboveGround(facingRight: Bool) {
+    var sim = stageSim(.thirsty, facingRight: facingRight)
+    for _ in 0..<10_000 where sim.duck.look != .classic { sim.send(.newLook) }
+    #expect(sim.duck.look == .classic)
+    sim.findMove(.trip, facingRight: facingRight)
+    for i in 0...100 {
+        let pose = sim.duck.frame(at: sim.duck.phaseStart + Trick.trip.duration * Double(i) / 100).pose
+        expectArtAboveGround(CGRect(x: -40, y: -70, width: 80, height: 70), pose: pose)
+    }
+}
+
+@Test(arguments: [false, true])
+func backflipKeepsTheBalloonAboveGround(facingRight: Bool) {
+    var sim = stageSim(facingRight: facingRight)
+    for _ in 0..<1_000 where sim.duck.look.item != .balloon { sim.send(.newLook) }
+    #expect(sim.duck.look.item == .balloon)
+    sim.findMove(.backflip, facingRight: facingRight)
+    for i in 0...100 {
+        let pose = sim.duck.frame(at: sim.duck.phaseStart + Trick.backflip.duration * Double(i) / 100).pose
+        expectArtAboveGround(CGRect(x: 20, y: -110, width: 20, height: 50), pose: pose)
+    }
+}
+
+@Test(arguments: [HeldItem.duckling, .fish, .balloon, .umbrella], [false, true])
+func standingDuckTakesClicksOnVisibleHeldArt(item: HeldItem, mirrored: Bool) {
+    var frame = Duck(timings: .normal, seed: 1).frame(at: .now)
+    frame.pose.mirrored = mirrored
+    frame.look = Look(palette: .classic, item: item)
+    let point: CGPoint = switch item {
+    case .duckling: CGPoint(x: -57.5, y: -27.5)
+    case .fish: CGPoint(x: 57.5, y: -52.5)
+    case .balloon: CGPoint(x: 22.5, y: -102.5)
+    case .umbrella: CGPoint(x: -27.5, y: -87.5)
+    default: .zero
+    }
+    let visible = drawnPoint(point, pose: frame.pose)
+    #expect(Layout.hitRegions(frame, bubble: nil).contains { $0.contains(visible) })
+}
+
+@Test(arguments: [false, true])
+func sharedTransformKeepsTheDrawingOrder(mirrored: Bool) {
+    var pose = Duck(timings: .normal, seed: 1).frame(at: .now).pose
+    pose.mirrored = mirrored
+    pose.dx = -6
+    pose.jitter = 1.7
+    pose.lift = 12
+    pose.sink = 8
+    for (tilt, spin) in [(0.0, 0.0), (18, 0), (0, 90), (-30, 137), (80, -180)] {
+        pose.tilt = tilt
+        pose.spin = spin
+        for (scaleX, scaleY) in [(1.0, 1.0), (-0.65, 0.8)] {
+            pose.scaleX = scaleX
+            pose.scaleY = scaleY
+            for point in [CGPoint(x: -7.5, y: -87.5), CGPoint(x: 57.5, y: -52.5), .zero] {
+                let expected = drawnPoint(point, pose: pose)
+                let drawn = point.applying(Layout.spriteTransform(pose))
+                #expect(abs(drawn.x - expected.x) < 0.0001)
+                #expect(abs(Layout.panel.height - drawn.y - expected.y) < 0.0001)
+            }
+        }
+    }
+}
+
+@Test func heldItemOverrideSetsTheClickBounds() {
+    var frame = Duck(timings: .normal, seed: 1).frame(at: .now)
+    frame.look = Look(palette: .classic, item: .balloon)
+    frame.pose.item = .duckling
+    let duckling = drawnPoint(CGPoint(x: -57.5, y: -27.5), pose: frame.pose)
+    let balloon = drawnPoint(CGPoint(x: 22.5, y: -102.5), pose: frame.pose)
+    let regions = Layout.hitRegions(frame, bubble: nil)
+    #expect(regions.contains { $0.contains(duckling) })
+    #expect(!regions.contains { $0.contains(balloon) })
+}

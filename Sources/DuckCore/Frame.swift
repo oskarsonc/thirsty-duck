@@ -391,6 +391,18 @@ public struct Pose: Equatable, Sendable {
         }
         if (item ?? duck.look.item) == .skateboard { lift += 10 }
         if duck.look.palette == .ghost { lift += 3 + 3 * sin(2.2 * w) }
+        switch duck.phase {
+        case .waiting(_, .roll?), .waiting(_, .backflip?), .waiting(_, .trip?):
+            var bounds = Layout.artBounds(look: duck.look, pose: self)
+            if tilt != 0 || spin != 0 {
+                // Sprite.fill extends turned cells right and down to hide seams.
+                bounds.size.width += 0.4
+                bounds.size.height += 0.4
+            }
+            let bottom = bounds.applying(Layout.spriteTransform(self)).maxY
+            lift += max(0, bottom - (Layout.panel.height - Layout.ground))
+        default: break
+        }
     }
 
     private mutating func walk(_ w: Double, frequency: Double = 6) {

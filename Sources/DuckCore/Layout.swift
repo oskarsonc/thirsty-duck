@@ -23,18 +23,30 @@ public enum Layout {
                height: text.height + 2 * bubblePadding.height + bubbleTail)
     }
 
+    // Canvas uses y-down coordinates; the hit test converts the same drawing transform to y-up.
+    public static func spriteTransform(_ pose: Pose) -> CGAffineTransform {
+        CGAffineTransform(translationX: panel.width / 2 + pose.dx + pose.jitter,
+                          y: panel.height - ground - pose.lift + pose.sink)
+            .scaledBy(x: pose.mirrored ? -1 : 1, y: 1)
+            .rotated(by: pose.tilt * .pi / 180)
+            .translatedBy(x: 0, y: -35).rotated(by: pose.spin * .pi / 180)
+            .translatedBy(x: 0, y: 35).scaledBy(x: pose.scaleX, y: pose.scaleY)
+    }
+
+    static func artBounds(look: Look, pose: Pose) -> CGRect {
+        let headroom = CGFloat(look.headroom)
+        var cells = CGRect(x: 0, y: -headroom, width: 16, height: 14 + headroom)
+        if let item = pose.item ?? look.item { cells = cells.union(item.artBoundsInCells) }
+        let cell = sprite.width / 16
+        return CGRect(x: (cells.minX - 8) * cell, y: (cells.minY - 14) * cell,
+                      width: cells.width * cell, height: cells.height * cell)
+    }
+
     /// The sprite and bubble as `DuckView` draws `frame`. Clicks anywhere else in the panel go to the app below.
     public static func hitRegions(_ frame: Frame, bubble: CGSize?) -> [CGRect] {
         let pose = frame.pose
-        let foot = CGPoint(x: panel.width / 2 + pose.dx + pose.jitter, y: ground + pose.lift - pose.sink)
-        // SwiftUI turns a positive tilt clockwise on screen, then mirrors. Mirroring the
-        // symmetric box turns the tilt the other way.
-        let angle = (pose.mirrored ? 1 : -1) * pose.tilt * .pi / 180
-        let turn = CGAffineTransform(translationX: foot.x, y: foot.y).rotated(by: angle)
-            .translatedBy(x: 0, y: 35).rotated(by: -pose.spin * .pi / 180)
-            .translatedBy(x: 0, y: -35).scaledBy(x: pose.scaleX * (pose.mirrored ? -1 : 1), y: pose.scaleY)
-        var duck = CGRect(x: -sprite.width / 2, y: 0, width: sprite.width,
-                          height: sprite.height + CGFloat(frame.look.headroom) * 5).applying(turn)
+        let drawn = artBounds(look: frame.look, pose: pose).applying(spriteTransform(pose))
+        var duck = CGRect(x: drawn.minX, y: panel.height - drawn.maxY, width: drawn.width, height: drawn.height)
         if pose.clipsAtGround {
             duck = duck.intersection(CGRect(x: 0, y: ground - 1, width: panel.width, height: panel.height - ground + 1))
         }

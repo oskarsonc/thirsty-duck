@@ -1,3 +1,5 @@
+import CoreGraphics
+
 public enum Palette: String, CaseIterable, Sendable {
     case classic, mint, bubblegum, sky, lavender, peach, snow, charcoal, lime, ocean
     case mallard, strawberry, sunset, cow, chick, golden, rainbow, galaxy, ghost, robot
@@ -42,6 +44,20 @@ public enum Outfit: String, CaseIterable, Sendable {
 public enum HeldItem: String, CaseIterable, Sendable {
     case waterBottle = "I1", glassOfWater = "I2", umbrella = "I3", balloon = "I4", flower = "I5"
     case lollipop = "I6", fish = "I7", skateboard = "I8", duckling = "I9"
+
+    public var artBoundsInCells: CGRect {
+        switch self {
+        case .waterBottle: CGRect(x: 12, y: 5, width: 3, height: 6)
+        case .glassOfWater: CGRect(x: 13, y: 5, width: 3, height: 6)
+        case .umbrella: CGRect(x: 2, y: -7, width: 11, height: 6)
+        case .balloon: CGRect(x: 12, y: -8, width: 4, height: 10)
+        case .flower: CGRect(x: 13, y: 1, width: 3, height: 3)
+        case .lollipop: CGRect(x: 13, y: 0, width: 3, height: 4)
+        case .fish: CGRect(x: 13, y: 3, width: 7, height: 2)
+        case .skateboard: CGRect(x: 1, y: 13, width: 14, height: 3)
+        case .duckling: CGRect(x: -6, y: 8, width: 6, height: 6)
+        }
+    }
 }
 
 public struct Look: Equatable, Sendable {

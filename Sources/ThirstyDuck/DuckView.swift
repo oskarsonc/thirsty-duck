@@ -66,13 +66,7 @@ struct DuckView: View {
         }
         ctx.opacity = Sprite.paint(frame.look.palette).opacity
         ctx.drawLayer { ctx in
-            ctx.translateBy(x: feet.x, y: feet.y + pose.sink)
-            ctx.scaleBy(x: pose.mirrored ? -1 : 1, y: 1)
-            ctx.rotate(by: .degrees(pose.tilt))
-            ctx.translateBy(x: 0, y: -35)
-            ctx.rotate(by: .degrees(pose.spin))
-            ctx.translateBy(x: 0, y: 35)
-            ctx.scaleBy(x: pose.scaleX, y: pose.scaleY)
+            ctx.concatenate(Layout.spriteTransform(pose))
             Sprite.fill(Sprite.pixels(frame.look, pose, t: lookTime), in: ctx, smooth: pose.tilt != 0 || pose.spin != 0)
         }
     }

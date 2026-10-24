@@ -16,6 +16,8 @@ The app draws the look from the design prototype's art (`Sprite.swift`): tables 
 
 `DuckView` draws only from `Frame`, with no timers or SwiftUI animations. Tilt, spin (around the point 35 pt above the feet), and scale are in the duck's own space, inside the mirror. `dx`, jitter, and lift move the sprite; `sink` moves it down. Move particles are emoji placed from the point under the feet. A puddle is a blue ellipse on the ground. The swim water is a wavy pond in front of the duck, with two ripples. Peekaboo clips the sprite at the ground line. The shadow follows `dx`, gets smaller as the duck rises, and is hidden in the water and deep in peekaboo.
 
+Rolls, backflips, and trips add only the lift needed to keep the turned art above the ground line. The bounds include the body, the look's headroom, the effective held item, and the small cell overlap used while turning. Other move curves stay the same.
+
 Colors: `Y #FFD43B` body, `D #FAB005` wing, `O #FF922B` beak and feet, `K #2B2B2B` eye, `W #FFFFFF` eye shine, `P #FF8FA3` blush.
 
 Body map, 16 columns x 12 rows, facing right, `.` is transparent:
@@ -82,7 +84,7 @@ Click on the duck in any level means "I drank":
 - Then it walks off by the right edge of its screen.
 - The reminder timer starts again from zero.
 
-Only the duck and its bubble take mouse clicks, where they are drawn: the bubble at its current pop scale, and the box of the sprite turned by its current tilt. The panel takes mouse events only while the cursor is on them. It checks on each tick and on each mouse move or drag, so clicks route right between slow ticks. Everything else on the screen must stay fully usable. The duck never takes keyboard focus and never activates the app.
+Only the duck and its bubble take mouse clicks, where they are drawn: the bubble at its current pop scale, and the box of the body, look headroom, and effective held item. Drawing and hit testing use the same mirror, tilt, spin, scale, and position transform. The panel takes mouse events only while the cursor is on them. It checks on each tick and on each mouse move or drag, so clicks route right between slow ticks. Everything else on the screen must stay fully usable. The duck never takes keyboard focus and never activates the app.
 
 ## Away and off-hours
 
