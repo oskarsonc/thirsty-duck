@@ -42,6 +42,10 @@ final class DuckController {
 
     func callNow() { send(.callNow) }
 
+    func newLook() { send(.newLook) }
+
+    var canChangeLook: Bool { duck.canChangeLook }
+
     /// Uses the menu choices. Fast mode keeps its own short times and no hours.
     func applySettings() {
         guard duck.timings.workHours != nil else { return }

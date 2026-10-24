@@ -3,7 +3,7 @@ import DuckCore
 import ServiceManagement
 
 @MainActor
-final class StatusMenu: NSObject, NSMenuDelegate {
+final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Open at login", action: #selector(toggleLogin), keyEquivalent: "")
@@ -24,6 +24,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         statusLine.isEnabled = false
         menu.addItem(statusLine)
         menu.addItem(withTitle: "Call the duck now", action: #selector(call), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "New look now", action: #selector(newLook), keyEquivalent: "").target = self
         menu.addItem(.separator())
         if !fast {
             menu.addItem(submenu("Remind every", reminderMenu, Settings.reminderChoices, #selector(pickReminder)) { "\($0) min" })
@@ -83,6 +84,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
     }
 
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action != #selector(newLook) || controller.canChangeLook
+    }
+
     private func statusText(_ status: DuckStatus) -> String {
         switch status {
         case .here:
@@ -99,6 +104,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     @objc private func call() { controller.callNow() }
+
+    @objc private func newLook() { controller.newLook() }
 
     @objc private func pickReminder(_ sender: NSMenuItem) {
         Settings.reminderMinutes = sender.tag
