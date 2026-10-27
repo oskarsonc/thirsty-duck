@@ -51,7 +51,7 @@ Render crisp pixels (no smoothing). Pixel size about 5 pt, so the duck is about 
 
 Motion on top of the pixels (transforms of the whole sprite): walk bob (up 2 pt, small rock), hop (up about 14 pt and back), wiggle (rotate +-8 deg), shake (fast small x jitter).
 
-Speech bubble: white rounded rect above the head with a small tail, rounded bold system font about 13 pt, dark text. Thirst level 3 uses a light red bubble with red text. It pops in with a small spring scale.
+Speech bubble: all pixels, 2 pt each, as option A of the bubble design: a white box with a one-pixel `#2B2B2B` outline and its corners cut by one pixel, a two-row stepped tail under the middle, a black 15% shadow one pixel down and to the right, and the text 4 pixels in from the sides and 3 from the top and bottom. The text uses the pixel font in `PixelFont` (7 rows, variable width, a 1 pixel gap, lowercase drawn as uppercase), color `#2B2B2B`. Emoji and `…` are pixel icons in the same font, in fixed colors. Every character that a bubble can show has a glyph; a test checks this. DuckCore gets the bubble size from the font, so the hit test needs no text measuring. Thirst level 3 uses fill `#FFE3E3` with text `#C92A2A`. It pops in with a small spring scale around its bottom center. Each pixel snaps to whole points, also during the pop, so the bubble stays crisp at 1x and 2x.
 
 Small extras drawn in SwiftUI (emoji text is fine): sweat drops `💦` that fall from the head, `💤` while sleeping, `💧 💛 ✨` that float up on the happy click.
 
