@@ -31,12 +31,8 @@ struct DuckView: View {
             extras
 
             if let bubble = frame.bubble {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    BubbleView(bubble: bubble)
-                        .scaleEffect(frame.bubbleScale, anchor: .bottom)
-                }
-                .frame(width: Layout.panel.width, height: spriteTop - Layout.bubbleGap - CGFloat(frame.look.headroom) * 5)
+                Canvas { ctx, _ in drawBubble(ctx, bubble) }
+                    .frame(width: Layout.panel.width, height: Layout.panel.height)
             }
         }
         .frame(width: Layout.panel.width, height: Layout.panel.height)
@@ -93,6 +89,32 @@ struct DuckView: View {
         }
     }
 
+    /// One path per ink, in the bubble's order, so the text lands on the fill.
+    private func drawBubble(_ ctx: GraphicsContext, _ bubble: Bubble) {
+        let pixels = PixelBubble(bubble.text)
+        let px = Layout.bubblePixel
+        var paths: [(ink: PixelBubble.Ink, path: Path)] = []
+        for p in pixels.pixels {
+            let rect = Layout.bubbleRect(CGRect(x: CGFloat(p.x) * px, y: CGFloat(p.y) * px, width: px, height: px),
+                                         size: pixels.size, headroom: frame.look.headroom, scale: frame.bubbleScale)
+            if let i = paths.firstIndex(where: { $0.ink == p.ink }) {
+                paths[i].path.addRect(rect)
+            } else {
+                paths.append((p.ink, Path(rect)))
+            }
+        }
+        for (ink, path) in paths {
+            let color = switch ink {
+            case .shadow: Color.black.opacity(0.15)
+            case .line: Color(hex: 0x2B2B2B)
+            case .fill: bubble.alarm ? Color(hex: 0xFFE3E3) : .white
+            case .text: Color(hex: bubble.alarm ? 0xC92A2A : 0x2B2B2B)
+            case .color(let hex): Color(hex: hex)
+            }
+            ctx.fill(path, with: .color(color), style: FillStyle(antialiased: false))
+        }
+    }
+
     @ViewBuilder private var extras: some View {
         switch frame.effect {
         case .sweat(let loop):
@@ -120,39 +142,5 @@ struct DuckView: View {
         case .none:
             EmptyView()
         }
-    }
-}
-
-private struct BubbleView: View {
-    let bubble: Bubble
-
-    var body: some View {
-        Text(bubble.text)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
-            .foregroundStyle(bubble.alarm ? Color(hex: 0xC92A2A) : Color(hex: 0x1F2937))
-            .fixedSize()
-            .padding(.horizontal, Layout.bubblePadding.width)
-            .padding(.vertical, Layout.bubblePadding.height)
-            .padding(.bottom, Layout.bubbleTail)
-            .background(
-                BubbleShape(tail: Layout.bubbleTail)
-                    .fill(bubble.alarm ? Color(hex: 0xFFE3E3) : .white)
-                    .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
-            )
-    }
-}
-
-private struct BubbleShape: Shape {
-    let tail: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var body = rect
-        body.size.height -= tail
-        var p = Path(roundedRect: body, cornerRadius: 12)
-        p.move(to: CGPoint(x: rect.midX - tail, y: body.maxY))
-        p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.midX + tail, y: body.maxY))
-        p.closeSubpath()
-        return p
     }
 }

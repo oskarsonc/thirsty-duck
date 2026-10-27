@@ -13,7 +13,6 @@ final class DuckController {
     private var rate: Double = 0
     private var frame: Frame?
     private var screens = DuckController.readScreens()
-    private var bubbleSizes: [String: CGSize] = [:]
     private let debug = ProcessInfo.processInfo.environment["DUCK_DEBUG"] == "1"
     private var logged: (phase: DuckPhase, rate: Double, at: Date, redraws: Int)?
     private var redraws = 0
@@ -101,7 +100,7 @@ final class DuckController {
         let origin = NSPoint(x: (p.x - Layout.panel.width / 2).rounded(), y: (p.y - Layout.ground).rounded())
         if panel.frame.origin != origin { panel.setFrameOrigin(origin) }
 
-        panel.hitRegions = Layout.hitRegions(f, bubble: f.bubble.map { bubbleSize($0.text) })
+        panel.hitRegions = Layout.hitRegions(f, bubble: f.bubble.map { Layout.bubbleSize($0.text) })
         routeClicks(mouse)
         if !panel.isVisible {
             panel.orderFrontRegardless()
@@ -137,20 +136,6 @@ final class DuckController {
                                                    now.timeIntervalSince1970, "\(duck.phase)", wanted, perSecond).utf8))
         logged = (duck.phase, wanted, now, redraws)
     }
-
-    private func bubbleSize(_ text: String) -> CGSize {
-        if let size = bubbleSizes[text] { return size }
-        let measured = (text as NSString).size(withAttributes: [.font: Self.bubbleFont])
-        let size = Layout.bubbleSize(text: CGSize(width: measured.width.rounded(.up), height: measured.height.rounded(.up)))
-        bubbleSizes[text] = size
-        return size
-    }
-
-    /// Matches the bubble font in `DuckView`.
-    private static let bubbleFont: NSFont = {
-        let bold = NSFont.systemFont(ofSize: 13, weight: .bold)
-        return bold.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: 13) } ?? bold
-    }()
 
     /// The picked screen goes first, so the duck comes in there. If it is not connected, the main screen stays first.
     private static func readScreens() -> [Screen] {

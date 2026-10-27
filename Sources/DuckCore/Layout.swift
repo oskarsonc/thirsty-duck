@@ -7,20 +7,30 @@ public enum Layout {
     public static let ground: CGFloat = 10
     public static let sprite = CGSize(width: 80, height: 70)
     public static let bubbleGap: CGFloat = 6
-    public static let bubblePadding = CGSize(width: 10, height: 6)
-    public static let bubbleTail: CGFloat = 6
+    /// The bubble is drawn in pixels of this many points. The padding, with the outline in it, and the tail count them.
+    public static let bubblePixel: CGFloat = 2
+    public static let bubblePadding = (x: 4, y: 3)
+    public static let bubbleTail = 2
 
-    /// The level 4 bubble, measured with the bubble font.
-    public static let followBubble = CGSize(width: 137, height: 34)
+    public static let followBubble = bubbleSize(Bubble.follow.text)
     /// Room the level 4 duck needs around its bottom center: half its bubble at the top of the pop
-    /// on each side, and the sprite with that bubble on top.
-    public static let followHalfWidth = followBubble.width * Frame.maxBubbleScale / 2
+    /// on each side, and the sprite with that bubble on top. The point extra is for the snap in `bubbleRect`.
+    public static let followHalfWidth = followBubble.width * Frame.maxBubbleScale / 2 + 1
     public static let maxHeadroom: CGFloat = 8 * 5
-    public static let followHeight = sprite.height + maxHeadroom + 16 + bubbleGap + followBubble.height * Frame.maxBubbleScale
+    public static let followHeight = sprite.height + maxHeadroom + 16 + bubbleGap + followBubble.height * Frame.maxBubbleScale + 1
 
-    public static func bubbleSize(text: CGSize) -> CGSize {
-        CGSize(width: text.width + 2 * bubblePadding.width,
-               height: text.height + 2 * bubblePadding.height + bubbleTail)
+    public static func bubbleSize(_ text: String) -> CGSize { PixelBubble(text).size }
+
+    /// Where `rect`, in points from the top left of a bubble of `size`, is drawn at the pop `scale`: panel points, y down.
+    /// The bubble scales around its bottom center, and the edges snap to whole points so its pixels stay crisp.
+    public static func bubbleRect(_ rect: CGRect, size: CGSize, headroom: Int, scale: Double) -> CGRect {
+        let bottom = CGPoint(x: panel.width / 2, y: panel.height - ground - sprite.height - bubbleGap - CGFloat(headroom) * 5)
+        let s = CGFloat(scale)
+        let minX = (bottom.x + (rect.minX - size.width / 2) * s).rounded()
+        let maxX = (bottom.x + (rect.maxX - size.width / 2) * s).rounded()
+        let minY = (bottom.y + (rect.minY - size.height) * s).rounded()
+        let maxY = (bottom.y + (rect.maxY - size.height) * s).rounded()
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
     // Canvas uses y-down coordinates; the hit test converts the same drawing transform to y-up.
@@ -51,8 +61,7 @@ public enum Layout {
             duck = duck.intersection(CGRect(x: 0, y: ground - 1, width: panel.width, height: panel.height - ground + 1))
         }
         guard let bubble else { return [duck] }
-        let size = CGSize(width: bubble.width * frame.bubbleScale, height: bubble.height * frame.bubbleScale)
-        return [duck, CGRect(x: (panel.width - size.width) / 2, y: ground + sprite.height + bubbleGap + CGFloat(frame.look.headroom) * 5,
-                             width: size.width, height: size.height)]
+        let shown = bubbleRect(CGRect(origin: .zero, size: bubble), size: bubble, headroom: frame.look.headroom, scale: frame.bubbleScale)
+        return [duck, CGRect(x: shown.minX, y: panel.height - shown.maxY, width: shown.width, height: shown.height)]
     }
 }
