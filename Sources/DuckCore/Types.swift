@@ -100,6 +100,8 @@ public enum DuckPhase: Equatable, Sendable {
 public struct Bubble: Equatable, Sendable {
     public let text: String
     public let alarm: Bool
+
+    static let follow = Bubble(text: "DRINK WATER! 🥵", alarm: false)
 }
 
 public struct Screen: Sendable {

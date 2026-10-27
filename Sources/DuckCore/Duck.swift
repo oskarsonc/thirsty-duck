@@ -5,8 +5,8 @@ import Foundation
 public struct Duck: Sendable {
     /// The app may change `reminderInterval` while it runs; the clock keeps its count.
     public var timings: Timings
-    public private(set) var phase: DuckPhase = .hidden
-    public private(set) var phaseStart: Date = .distantPast
+    public internal(set) var phase: DuckPhase = .hidden
+    public internal(set) var phaseStart: Date = .distantPast
     public private(set) var shownAt: Date = .distantPast
     /// Counted work time since the last reset. It drives both the reminder and the thirst level.
     public private(set) var workTime: TimeInterval = 0
@@ -69,7 +69,7 @@ public struct Duck: Sendable {
         }
     }
 
-    private func bubble(at now: Date) -> Bubble? {
+    func bubble(at now: Date) -> Bubble? {
         switch phase {
         case .entering(let t), .moving(let t), .waiting(let t, _):
             if t <= .ask, let speech = Pose(duck: self, now: now).speech {
@@ -81,7 +81,7 @@ public struct Duck: Sendable {
                 return Motion.chillBubbleShown.contains(t) ? Bubble(text: "💧?", alarm: false) : nil
             case .ask: return Bubble(text: "drink! 💧", alarm: false)
             case .thirsty: return Bubble(text: "so thirsty… 💧💧", alarm: true)
-            case .follow: return Bubble(text: "DRINK WATER! 🥵", alarm: false)
+            case .follow: return .follow
             }
         case .happy: return Bubble(text: "thank you! 💛", alarm: false)
         case .hidden, .asleep, .leaving: return nil
