@@ -19,6 +19,7 @@
 - **A new look every time.** Each time the duck comes, it has a new random mix of 20 colors (5 of them rare), 22 hats, 12 glasses, 18 outfits and 9 things to hold, and it does a spin to show it.
 - **About 40 moves.** Moonwalk, backflip, dance, swim, sneeze, push-ups and more. Each thirst stage picks moves that fit it.
 - **Gets more thirsty.** Four levels, five minutes apart. At level 4 it follows your cursor until you click it.
+- **A stretch break once a day.** At a time you pick (12:00 by default), the duck comes with a sweatband and a yoga mat and stretches until you do.
 - **Counts only real computer time.** The clock stops when you are away, and a long break starts it again from zero.
 - **Stays out of your way.** Only the duck takes clicks; everything around it works as normal. No Dock icon, no keyboard focus, no sound.
 
@@ -36,6 +37,14 @@
 | Thank you | You click the duck | Happy hop, `thank you! 💛`, and it walks off. The clock starts again. |
 
 By default the duck comes every day between 08:00 and 23:00; change it in **Active hours**. A break of 30 minutes or more (idle time and Mac sleep together) starts the clock again from zero.
+
+## Stretch
+
+![The stretch duck: reach up, side bend and toe touch on its mat, then come on, follow, and nice](docs/stretch.png)
+
+Once a day, at the time in **Stretch at** (12:00 by default), the duck comes with a sweatband and a yoga mat and does stretches: reach up, side bend and touch its toes. It says `stretch time! 🙆`. After 5 minutes it stretches faster and says `come on, stretch!`, and after 10 minutes it follows your cursor: `STRETCH NOW!`. Click it when you have stretched; it says `nice! 💪` and does not come again until tomorrow.
+
+If the water duck is on screen at the stretch time, the stretch duck comes after it. If you are away, it comes when you are back, but never outside the active hours. The stretch does not count as a drink, so the water clock keeps running.
 
 ## Looks
 
@@ -71,8 +80,10 @@ The app is set to macOS 14 or later, but it is tested only on macOS 27 on Apple 
 | *Next duck in 12 min* | The first line shows when the next duck comes, that the duck is here, or *Off until 08:00*. |
 | **Call the duck now** | Brings the duck at once. Good for a first look. |
 | **New look now** | Gives the duck a new look at once. A duck that stands still does a spin to show it. Works while the duck is on screen, but not after you click it. |
+| **Stretch now** | Brings the stretch duck at once. Works while the duck is not on screen. A click on it counts as today's stretch. |
 | **Remind every** | 20, 30, 45 or 60 minutes of computer use. |
 | **Active hours** | When the duck may come: **Starts at** 06:00–12:00, **Ends at** 16:00–24:00, and **Weekends** on or off. |
+| **Stretch at** | The time of the daily stretch: 10:00–16:00 in 30 minute steps, or **Off**. It is 12:00 by default. |
 | **Show on** | The screen the duck comes in on, if you have more than one. It is the main screen by default. |
 | **Open at login** | Starts the duck when you log in. |
 | **Quit** | |
@@ -81,7 +92,7 @@ To change the level times or other numbers, edit `Sources/DuckCore/Timings.swift
 
 ## FAQ
 
-**Does it track me?** No. It reads only how many seconds ago you last used the mouse or keyboard, and where the cursor is. It saves nothing except your menu choices, and it never uses the network.
+**Does it track me?** No. It reads only how many seconds ago you last used the mouse or keyboard, and where the cursor is. It saves nothing except your menu choices and the day you last stretched, and it never uses the network.
 
 **Why does the duck sleep?** After 5 minutes with no input, the app takes it that you are away. The clock stops, so you are not punished for a meeting or a coffee.
 
@@ -95,7 +106,7 @@ DUCK_FAST=1 "build/Thirsty Duck.app/Contents/MacOS/ThirstyDuck"   # demo times
 ./scripts/render-docs.sh                # renders the README pictures and the app icon
 ```
 
-- **Fast mode** (`DUCK_FAST=1`): the duck comes after 10 s, gets more thirsty every 20 s, sleeps after 10 s with no input, and a 30 s break starts the clock again. Work hours are ignored. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
+- **Fast mode** (`DUCK_FAST=1`): the duck comes after 10 s, gets more thirsty every 20 s, sleeps after 10 s with no input, and a 30 s break starts the clock again. Work hours are ignored, and the stretch duck comes only with **Stretch now**. Add `DUCK_DEBUG=1` to print each phase and tick rate change to stderr.
 - If `swift test` fails with "plugin for module 'TestingMacros' not found", load the plugin by path:
   ```sh
   swift test -Xswiftc -load-plugin-library \

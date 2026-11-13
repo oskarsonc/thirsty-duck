@@ -1,6 +1,6 @@
 # Thirsty Duck
 
-A tiny native macOS app. A pixel duckling walks onto the screen to remind the user to drink water. The longer the user ignores it, the more thirsty and pushy it gets. One click on the duck means "I drank": it is happy and walks away. Nothing else.
+A tiny native macOS app. A pixel duckling walks onto the screen to remind the user to drink water. The longer the user ignores it, the more thirsty and pushy it gets. One click on the duck means "I drank": it is happy and walks away. Once a day, it also comes to remind the user to stretch. Nothing else.
 
 Owner wants: native, light, cute, no extra features.
 
@@ -12,9 +12,9 @@ Each appearance has a new random look. A look combines one of 20 palettes with o
 
 Golden, rainbow, galaxy, and ghost palettes are animated, as are the propeller cap, halo, scarf, and cape. A skateboard lifts the duck 10 pt. The ghost adds a float of `3 + 3 sin(2.2 w)` pt, where `w` is seconds since the Foundation reference date. The bubble rises by the look's headroom (5 pt per row).
 
-The app draws the look from the design prototype's art (`Sprite.swift`): tables of colored rows for the palettes (with their patterns and eye colors), hats, glasses, outfits (recolored body cells and art behind and in front), held items, and the drink bottle. Layers, back to front: outfit back, item back, body, outfit front, glasses, hat, item front, bottle. An umbrella hides the hat. Art may sit outside the 16 x 14 body: rows -8 to 15, columns -6 to 19. `Frame.lookClock` (12 per second) moves the propeller, halo (bobs one cell), scarf, cape, golden shine and sparkles, rainbow, and galaxy stars. The ghost is drawn at 72% opacity.
+The app draws the look from the design prototype's art (`Sprite.swift`): tables of colored rows for the palettes (with their patterns and eye colors), hats, glasses, outfits (recolored body cells and art behind and in front), held items, and the drink bottle. Layers, back to front: outfit back, item back, body, outfit front, glasses, hat, item front, bottle. The stretch duck's sweatband (`Frame.sweatband`) takes the hat's layer: red `#E03131` on row 1, columns 5 to 10, white at columns 7 and 8, and a knot at the back of the head at (1,4), (2,4), (2,3), (3,3). An umbrella hides the hat. Art may sit outside the 16 x 14 body: rows -8 to 15, columns -6 to 19. `Frame.lookClock` (12 per second) moves the propeller, halo (bobs one cell), scarf, cape, golden shine and sparkles, rainbow, and galaxy stars. The ghost is drawn at 72% opacity.
 
-`DuckView` draws only from `Frame`, with no timers or SwiftUI animations. Tilt, spin (around the point 35 pt above the feet), and scale are in the duck's own space, inside the mirror. `dx`, jitter, and lift move the sprite; `sink` moves it down. Move particles are emoji placed from the point under the feet. A puddle is a blue ellipse on the ground. The swim water is a wavy pond in front of the duck, with two ripples. Peekaboo clips the sprite at the ground line. The shadow follows `dx`, gets smaller as the duck rises, and is hidden in the water and deep in peekaboo.
+`DuckView` draws only from `Frame`, with no timers or SwiftUI animations. Tilt, spin (around the point 35 pt above the feet), and scale are in the duck's own space, inside the mirror. `dx`, jitter, and lift move the sprite; `sink` moves it down. Move particles are emoji placed from the point under the feet. A puddle is a blue ellipse on the ground. The swim water is a wavy pond in front of the duck, with two ripples. Peekaboo clips the sprite at the ground line. The shadow follows `dx`, gets smaller as the duck rises, and is hidden in the water and deep in peekaboo. When `Frame.mat` is set, a yoga mat replaces the shadow: 22 cells (110 pt) wide, centered under the feet, 5 pt of `#9775FA` on the ground line and a 2 pt `#7048E8` edge under it, and a rolled end (8 x 12 pt, `#7048E8`) on the side behind the duck.
 
 Rolls, backflips, and trips add only the lift needed to keep the turned art above the ground line. The bounds include the body, the look's headroom, the effective held item, and the small cell overlap used while turning. Other move curves stay the same.
 
@@ -53,7 +53,7 @@ Motion on top of the pixels (transforms of the whole sprite): walk bob (up 2 pt,
 
 Speech bubble: all pixels, 2 pt each, as option A of the bubble design: a white box with a one-pixel `#2B2B2B` outline and its corners cut by one pixel, a two-row stepped tail under the middle, a black 15% shadow one pixel down and to the right, and the text 4 pixels in from the sides and 3 from the top and bottom. The text uses the pixel font in `PixelFont` (7 rows, variable width, a 1 pixel gap, lowercase drawn as uppercase), color `#2B2B2B`. Emoji and `…` are pixel icons in the same font, in fixed colors. Every character that a bubble can show has a glyph; a test checks this. DuckCore gets the bubble size from the font, so the hit test needs no text measuring. Thirst level 3 uses fill `#FFE3E3` with text `#C92A2A`. It pops in with a small spring scale around its bottom center. Each pixel snaps to whole points, also during the pop, so the bubble stays crisp at 1x and 2x.
 
-Small extras drawn in SwiftUI (emoji text is fine): sweat drops `💦` that fall from the head, `💤` while sleeping, `💧 💛 ✨` that float up on the happy click.
+Small extras drawn in SwiftUI (emoji text is fine): sweat drops `💦` that fall from the head, `💤` while sleeping, `💧 💛 ✨` that float up on the happy click (`💪 💛 ✨` for the stretch duck).
 
 ## Thirst levels
 
@@ -86,6 +86,25 @@ Click on the duck in any level means "I drank":
 
 Only the duck and its bubble take mouse clicks, where they are drawn: the bubble at its current pop scale, and the box of the body, look headroom, and effective held item. Drawing and hit testing use the same mirror, tilt, spin, scale, and position transform. The panel takes mouse events only while the cursor is on them. It checks on each tick and on each mouse move or drag, so clicks route right between slow ticks. Everything else on the screen must stay fully usable. The duck never takes keyboard focus and never activates the app.
 
+## Stretch
+
+Once a day the duck comes as a stretch duck. Two kinds of visit share the one duck: water and stretch.
+
+- Stretch time: minutes after midnight (`Timings.stretchAt`), or off. 12:00 by default; the `Stretch at` menu changes it.
+- The stretch duck comes when all of these are true: the duck is hidden; the stretch time is set and the wall clock is at or past it today; the stretch is not done today; the time is in the work hours; the user is not away. If the water duck is on screen, the stretch duck comes after it leaves. If both are due, the stretch duck comes first. If the work hours end first, that day is skipped.
+- Only a click on the stretch duck marks the stretch done for that calendar day (`Duck.stretchDoneDay`). The app saves that day, so a restart does not bring it again. A stretch duck that leaves for another reason (long break, end of work hours) is not done and comes again.
+- Look: a new random look with no hat and no held item. It wears the sweatband for the whole visit.
+- Levels, from its arrival, with the same clock rules and `levelStep` as the water duck:
+
+| Level | Where the duck is | What it does | Bubble |
+|---|---|---|---|
+| 1 Remind | At home on its yoga mat. | The arrival spin, then reach up (2.4 s), side bend (2.8 s) and toe touch (2.8 s), never the same twice in a row, with a gap of 1.5 to 3 s. | `stretch time! 🙆`, in the same cycle as `💧?`. |
+| 2 Insist | At home on its mat. | The same stretches 1.5 times faster, with a gap of 0.5 to 1 s. | `come on, stretch!` |
+| 3 Follow | Rolls up the mat and follows the cursor exactly like the water duck at level 4. | Reaches up when it stops. No sweat. | `STRETCH NOW!` |
+
+- Click: happy hop, `💪 💛 ✨`, bubble `nice! 💪`, then it walks off. The water clock keeps running during a stretch visit, and the click does not reset it.
+- Asleep while away, as the water duck.
+
 ## Away and off-hours
 
 The timer counts only time when the user is at the Mac and inside work hours.
@@ -106,18 +125,21 @@ awayAfter        = 5 min
 longBreak        = 30 min
 workDays         = every day
 workHours        = 08:00-23:00
+stretchAt        = 12:00    (the menu can change it or turn it off)
 ```
 
-`DUCK_FAST=1` environment variable: demo times (10 s interval, 20 s levels, 10 s away, 30 s long break) and ignore work hours. This is for testing only.
+`DUCK_FAST=1` environment variable: demo times (10 s interval, 20 s levels, 10 s away, 30 s long break), ignore work hours, and no stretch time (only `Stretch now` brings the stretch duck, and its click is not saved). This is for testing only.
 
 ## Menu bar
 
 A small menu bar icon (SF Symbol `drop.fill` or a tiny duck). Menu items:
 - `Call the duck now` (starts a reminder at level 1 at once; useful for testing and for the user). It first ends any break, then counts as input.
 - `New look now`, right under it, also in fast mode: sends `newLook`. Enabled only when `Duck.canChangeLook`.
+- `Stretch now`, right under it, also in fast mode: sends `stretchNow`, which brings the stretch duck at once. Enabled only when the duck is hidden.
 - A disabled first line with the status (`Duck.status`): `Next duck in N min` (rounded up), `The duck is here 🦆`, or `Off until HH:MM` (with the weekday if it is not today or tomorrow).
 - `Active hours` submenu: `Starts at` 06:00-12:00, `Ends at` 16:00-24:00, and a `Weekends` toggle. Saved; sets `workHours`. Hidden in fast mode.
 - `Remind every` submenu: 20, 30, 45 or 60 min. The choice is saved and sets `reminderInterval`. Hidden in fast mode.
+- `Stretch at` submenu, right after `Active hours`: `Off`, a separator, then 10:00 to 16:00 every 30 min, with a check mark on the current choice. 12:00 by default. Saved; sets `stretchAt`. Hidden in fast mode.
 - `Show on` submenu, only with more than one screen: the screen the duck comes in on. The main screen by default. Saved by display ID; if that screen is not connected, the main screen is used. Screens with the same name get a number.
 - `Open at login` toggle (`SMAppService.mainApp`)
 - `Quit`

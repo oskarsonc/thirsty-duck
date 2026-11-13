@@ -80,6 +80,11 @@ func writePNG(_ img: CGImage, _ url: URL) {
     for _ in 0..<14 { sim.tick() }
     shots.append(("click · thank you", shot()))
 
+    writeSheet(shots, "stages.png")
+}
+
+/// One labelled duck per shot, in a row, like the README's other sheets.
+@MainActor func writeSheet(_ shots: [(String, Frame)], _ name: String) {
     let sheet = HStack(spacing: 0) {
         ForEach(Array(shots.enumerated()), id: \.offset) { _, shot in
             VStack(spacing: 0) {
@@ -93,7 +98,51 @@ func writePNG(_ img: CGImage, _ url: URL) {
         }
     }
     .background(Color(hex: 0xEEF5FD))
-    writePNG(image(sheet, scale: 2), docs.appendingPathComponent("stages.png"))
+    writePNG(image(sheet, scale: 2), docs.appendingPathComponent(name))
+}
+
+// MARK: - Stretch sheet
+
+@MainActor func renderStretch() {
+    let screen = Screen(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visible: CGRect(x: 0, y: 0, width: 1440, height: 875))
+    // Level 1 lasts long enough to catch each stretch at its peak while the bubble shows.
+    let timings = Timings(reminderInterval: 100_000, levelStep: 120, awayAfter: 100_000, longBreak: 100_000, workHours: nil)
+    var sim = Sim(timings: timings, screen: screen)
+    var shots: [(String, Frame)] = []
+    func shot() -> Frame {
+        var f = sim.frame
+        precondition(f.look.palette != .ghost)
+        f.look = .classic
+        f.lookClock = 0
+        return f
+    }
+    /// Waits for `trick` at level `level`, at the part of the move where the pose is clearest.
+    func peak(_ level: StretchLevel, _ trick: Trick, at k: Double, bubble: Bool) {
+        var t = 0.0
+        while t < 600 {
+            if case .waiting(.stretch(level), trick?) = sim.duck.phase, !bubble || sim.duck.bubble != nil {
+                let progress = sim.now.timeIntervalSince(sim.duck.phaseStart) / sim.duck.phase.visit!.duration(of: trick)
+                if abs(progress - k) < 0.02 { return }
+            }
+            sim.tick()
+            t += 1.0 / 30
+        }
+        preconditionFailure("no \(trick) at level \(level)")
+    }
+    sim.send(.stretchNow)
+    for (label, trick, k) in [("1 · reach up", Trick.reachUp, 0.5), ("1 · side bend", .sideBend, 0.25), ("1 · toe touch", .toeTouch, 0.5)] {
+        peak(.remind, trick, at: k, bubble: true)
+        shots.append((label, shot()))
+    }
+    peak(.insist, .reachUp, at: 0.5, bubble: true)
+    shots.append(("2 · come on", shot()))
+    while sim.duck.phase != .waiting(.stretch(.follow), nil) { sim.tick() }
+    for _ in 0..<24 { sim.tick() }
+    shots.append(("3 · follow", shot()))
+    sim.send(.click)
+    for _ in 0..<14 { sim.tick() }
+    shots.append(("click · nice!", shot()))
+    writeSheet(shots, "stretch.png")
 }
 
 // MARK: - Looks sheet
@@ -358,6 +407,7 @@ struct AppIcon: View {
 MainActor.assumeIsolated {
     renderIcon()
     renderStages()
+    renderStretch()
     renderLooks()
     renderDemo()
 }
