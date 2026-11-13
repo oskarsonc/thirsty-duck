@@ -47,11 +47,25 @@ struct DuckView: View {
             ctx.fill(Path(ellipseIn: CGRect(x: Layout.panel.width / 2 - 75, y: groundY - 3, width: 150, height: 8)),
                      with: .color(Color(hex: 0x74C0FC).opacity(0.6)))
         }
+        if frame.mat {
+            drawMat(ctx)
+            return
+        }
         guard !pose.water, !(pose.clipsAtGround && pose.sink > 40) else { return }
         let width = 49 * max(0.45, 1 - pose.lift / 60)
         let x = Layout.panel.width / 2 + pose.dx + (frame.facingRight ? 1.5 : -1.5)
         ctx.fill(Path(roundedRect: CGRect(x: x - width / 2, y: groundY, width: width, height: 3), cornerRadius: 1.5),
                  with: .color(.black.opacity(0.13)))
+    }
+
+    /// 22 cells wide under the feet, with the rolled end behind the duck.
+    private func drawMat(_ ctx: GraphicsContext) {
+        let x = Layout.panel.width / 2 + pose.dx
+        let half = 11 * Sprite.cell
+        ctx.fill(Path(CGRect(x: x - half, y: groundY, width: 2 * half, height: 5)), with: .color(Color(hex: 0x9775FA)))
+        ctx.fill(Path(CGRect(x: x - half, y: groundY + 5, width: 2 * half, height: 2)), with: .color(Color(hex: 0x7048E8)))
+        let rollX = frame.facingRight ? x - half - 3 : x + half - 5
+        ctx.fill(Path(CGRect(x: rollX, y: groundY - 5, width: 8, height: 12)), with: .color(Color(hex: 0x7048E8)))
     }
 
     /// Tilt, spin and scale are in the duck's own space, so they go inside the mirror.
@@ -63,7 +77,7 @@ struct DuckView: View {
         ctx.opacity = Sprite.paint(frame.look.palette).opacity
         ctx.drawLayer { ctx in
             ctx.concatenate(Layout.spriteTransform(pose))
-            Sprite.fill(Sprite.pixels(frame.look, pose, t: lookTime), in: ctx, smooth: pose.tilt != 0 || pose.spin != 0)
+            Sprite.fill(Sprite.pixels(frame.look, pose, sweatband: frame.sweatband, t: lookTime), in: ctx, smooth: pose.tilt != 0 || pose.spin != 0)
         }
     }
 
@@ -130,7 +144,7 @@ struct DuckView: View {
                 .opacity(1 - k)
                 .position(x: headX + (frame.facingRight ? 22 : -22) + k * 8, y: spriteTop - k * 30)
         case .cheer(let t):
-            ForEach(Array(["💧", "💛", "✨"].enumerated()), id: \.offset) { i, emoji in
+            ForEach(Array([frame.sweatband ? "💪" : "💧", "💛", "✨"].enumerated()), id: \.offset) { i, emoji in
                 let k = t - Double(i) * 0.12
                 if (0..<1).contains(k) {
                     Text(emoji).font(.system(size: 16))

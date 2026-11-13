@@ -136,11 +136,11 @@ enum Sprite {
     }
 
     /// Every pixel of the duck, back to front, in the prototype's `compose` order.
-    static func pixels(_ look: Look, _ pose: Pose, t: Double) -> [Pixel] {
+    static func pixels(_ look: Look, _ pose: Pose, sweatband: Bool = false, t: Double) -> [Pixel] {
         let paint = paint(look.palette)
         let clothes = look.outfit.map(outfit)
         let item = (pose.item ?? look.item).map(held)
-        let hat = item?.hidesHat == true ? nil : look.hat.map(hat)
+        let hat = sweatband ? Self.sweatband : item?.hidesHat == true ? nil : look.hat.map(hat)
         var out: [Pixel] = []
         for art in [clothes?.back, item?.back] { out += art?.pixels(at: t) ?? [] }
         for (r, line) in grid(pose).enumerated() {
@@ -272,6 +272,9 @@ enum Sprite {
         case .sailor: Art(-2, 5, [".wwww.", "bbbbbb"], ["w": 0xFFFFFF, "b": 0x1864AB])
         }
     }
+
+    /// The stretch duck's band, with its knot at the back of the head. It takes the hat's place.
+    static let sweatband = Art(1, 3, [".rrrwwrr", "rr", "r"], ["r": 0xE03131, "w": 0xFFFFFF])
 
     // MARK: - Glasses
 
