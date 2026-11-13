@@ -18,10 +18,10 @@ func allBubbleTexts() -> Set<String> {
         }
     }
     for thirst in [Thirst.chill, .ask, .thirsty, .follow] {
-        sample(.waiting(thirst, nil), for: Motion.chillBubbleCycle)
-        for trick in thirst.oldTricks + thirst.newTricks { sample(.waiting(thirst, trick), for: trick.duration) }
+        sample(.waiting(.water(thirst), nil), for: Motion.chillBubbleCycle)
+        for trick in thirst.oldTricks + thirst.newTricks { sample(.waiting(.water(thirst), trick), for: trick.duration) }
     }
-    sample(.happy, for: 0)
+    sample(.happy(.water(.chill)), for: 0)
     return texts
 }
 

@@ -45,6 +45,65 @@ public enum Thirst: Int, Comparable, Sendable {
     }
 }
 
+public enum Visit: Equatable, Sendable {
+    case water(Thirst)
+
+    enum Place { case home, ask, still, follow }
+
+    var place: Place {
+        switch self {
+        case .water(.chill): .home
+        case .water(.ask): .ask
+        case .water(.thirsty): .still
+        case .water(.follow): .follow
+        }
+    }
+
+    func level(after elapsed: TimeInterval, step: TimeInterval) -> Visit {
+        let steps = max(0, Int(elapsed / step))
+        switch self {
+        case .water: return .water(Thirst(rawValue: min(4, 1 + steps))!)
+        }
+    }
+
+    var stageBubble: Bubble {
+        switch self {
+        case .water(.chill): Bubble(text: "💧?", alarm: false)
+        case .water(.ask): Bubble(text: "drink! 💧", alarm: false)
+        case .water(.thirsty): Bubble(text: "so thirsty… 💧💧", alarm: true)
+        case .water(.follow): .follow
+        }
+    }
+
+    var happyBubble: Bubble { Bubble(text: "thank you! 💛", alarm: false) }
+    var cyclesBubble: Bool { self == .water(.chill) }
+    var allowsMoveSpeech: Bool {
+        switch self {
+        case .water(let thirst): thirst <= .ask
+        }
+    }
+    var sweats: Bool {
+        switch self {
+        case .water(let thirst): thirst >= .thirsty
+        }
+    }
+    var restingTrick: Trick? { place == .follow ? .shake : nil }
+    var oldTricks: [Trick] {
+        switch self { case .water(let thirst): thirst.oldTricks }
+    }
+    var newTricks: [Trick] {
+        switch self { case .water(let thirst): thirst.newTricks }
+    }
+    var oldTrickWeight: Double {
+        switch self { case .water(let thirst): thirst.oldTrickWeight }
+    }
+    var trickGap: ClosedRange<TimeInterval> {
+        switch self { case .water(let thirst): thirst.trickGap }
+    }
+
+    func duration(of trick: Trick) -> TimeInterval { trick.duration }
+}
+
 public enum Trick: Equatable, Sendable {
     case blink, lookBack, hop, wiggle, peck, stroll(right: Bool), hopHop, shake
 
@@ -89,12 +148,20 @@ public enum DuckStatus: Equatable, Sendable {
 
 public enum DuckPhase: Equatable, Sendable {
     case hidden
-    case entering(Thirst)
-    case waiting(Thirst, Trick?)
-    case moving(Thirst)
-    case asleep(Thirst)
-    case happy
-    case leaving
+    case entering(Visit)
+    case waiting(Visit, Trick?)
+    case moving(Visit)
+    case asleep(Visit)
+    case happy(Visit)
+    case leaving(Visit)
+
+    public var visit: Visit? {
+        switch self {
+        case .hidden: nil
+        case .entering(let visit), .waiting(let visit, _), .moving(let visit), .asleep(let visit),
+             .happy(let visit), .leaving(let visit): visit
+        }
+    }
 }
 
 public struct Bubble: Equatable, Sendable {

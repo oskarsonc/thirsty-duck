@@ -57,7 +57,7 @@ extension Duck {
     public func frame(at now: Date) -> Frame {
         let w = now.timeIntervalSinceReferenceDate
         let effect: Effect = switch phase {
-        case .waiting(.thirsty, _), .moving(.thirsty), .waiting(.follow, _), .moving(.follow):
+        case .waiting(let visit, _) where visit.sweats, .moving(let visit) where visit.sweats:
             .sweat((w * 0.9).truncatingRemainder(dividingBy: 1))
         case .asleep: .snooze((w / 2).truncatingRemainder(dividingBy: 1))
         case .happy: .cheer(now.timeIntervalSince(phaseStart))
@@ -115,9 +115,9 @@ public struct Pose: Equatable, Sendable {
         if duck.isWalking { walk(w) }
         switch duck.phase {
         case .waiting(let thirst, let trick):
-            if thirst == .thirsty { tilt += 5 }
+            if thirst == .water(.thirsty) { tilt += 5 }
             guard let trick else { break }
-            let k = min(t / trick.duration, 1)
+            let k = min(t / thirst.duration(of: trick), 1)
             switch trick {
             case .blink: eyes = .closed
             case .lookBack: mirrored.toggle()

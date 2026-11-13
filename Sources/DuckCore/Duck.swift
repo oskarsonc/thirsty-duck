@@ -56,10 +56,8 @@ public struct Duck: Sendable {
         return .nextIn(max(0, timings.reminderInterval - workTime))
     }
 
-    public var level: Thirst {
-        let over = workTime - (arrivedAt ?? timings.reminderInterval)
-        guard over > 0 else { return .chill }
-        return Thirst(rawValue: min(Thirst.follow.rawValue, 1 + Int(over / timings.levelStep)))!
+    public var level: Visit? {
+        phase.visit?.level(after: workTime - (arrivedAt ?? workTime), step: timings.levelStep)
     }
 
     public var isWalking: Bool {
@@ -72,18 +70,15 @@ public struct Duck: Sendable {
     func bubble(at now: Date) -> Bubble? {
         switch phase {
         case .entering(let t), .moving(let t), .waiting(let t, _):
-            if t <= .ask, let speech = Pose(duck: self, now: now).speech {
+            if t.allowsMoveSpeech, let speech = Pose(duck: self, now: now).speech {
                 return Bubble(text: speech, alarm: false)
             }
-            switch t {
-            case .chill:
-                let t = now.timeIntervalSince(shownAt).truncatingRemainder(dividingBy: Motion.chillBubbleCycle)
-                return Motion.chillBubbleShown.contains(t) ? Bubble(text: "💧?", alarm: false) : nil
-            case .ask: return Bubble(text: "drink! 💧", alarm: false)
-            case .thirsty: return Bubble(text: "so thirsty… 💧💧", alarm: true)
-            case .follow: return .follow
+            if t.cyclesBubble {
+                let age = now.timeIntervalSince(shownAt).truncatingRemainder(dividingBy: Motion.chillBubbleCycle)
+                if !Motion.chillBubbleShown.contains(age) { return nil }
             }
-        case .happy: return Bubble(text: "thank you! 💛", alarm: false)
+            return t.stageBubble
+        case .happy(let t): return t.happyBubble
         case .hidden, .asleep, .leaving: return nil
         }
     }
@@ -120,10 +115,10 @@ public struct Duck: Sendable {
 
     private mutating func click(_ now: Date) {
         switch phase {
-        case .entering, .waiting, .moving, .asleep:
+        case .entering(let t), .waiting(let t, _), .moving(let t), .asleep(let t):
             workTime = 0
             lastInput = now
-            set(.happy, now)
+            set(.happy(t), now)
         case .hidden, .happy, .leaving:
             break
         }
@@ -176,8 +171,8 @@ public struct Duck: Sendable {
         case .entering(let t), .moving(let t), .waiting(let t, _):
             if away {
                 set(.asleep(t), now)
-            } else if level > t {
-                set(level == .thirsty ? .waiting(.thirsty, nil) : .moving(level), now)
+            } else if let level, level != t {
+                set(level.place == .still ? .waiting(level, nil) : .moving(level), now)
             } else {
                 act(now, min(dt, 0.1), s)
             }
@@ -193,13 +188,13 @@ public struct Duck: Sendable {
     private mutating func act(_ now: Date, _ dt: TimeInterval, _ s: Sensors) {
         switch phase {
         case .entering(let t), .moving(let t):
-            let speed = t == .follow ? Motion.followSpeed : Motion.walkSpeed
+            let speed = t.place == .follow ? Motion.followSpeed : Motion.walkSpeed
             if walk(to: target(t, s), speed: speed, dt: dt) { arrive(t, now, s) }
         case .waiting(let t, let trick):
-            if t == .follow {
+            if t.place == .follow {
                 // Only a cursor that moves away pulls the duck along, so the user can reach it to click.
-                if distance(position, s.mouse) > Motion.followLeash && distance(position, target(.follow, s)) > Motion.followSlack {
-                    set(.moving(.follow), now)
+                if distance(position, s.mouse) > Motion.followLeash && distance(position, target(t, s)) > Motion.followSlack {
+                    set(.moving(t), now)
                     return
                 }
                 facingRight = s.mouse.x > position.x
@@ -210,7 +205,7 @@ public struct Duck: Sendable {
                     facingRight = right
                     home = position
                 }
-                if now.timeIntervalSince(phaseStart) >= trick.duration {
+                if now.timeIntervalSince(phaseStart) >= t.duration(of: trick) {
                     set(.waiting(t, nil), now)
                     scheduleTrick(t, now)
                 }
@@ -230,7 +225,7 @@ public struct Duck: Sendable {
         facingRight = false
         shownAt = now
         arrivedAt = workTime
-        set(.entering(.chill), now)
+        set(.entering(.water(.chill)), now)
     }
 
     private mutating func takeStage(_ screen: Screen) {
@@ -250,13 +245,15 @@ public struct Duck: Sendable {
             set(.hidden, now)
         case .asleep:
             position = home
-        case .entering(.follow), .moving(.follow), .waiting(.follow, _):
-            // Walk to the cursor, even if it is within the leash.
-            if phase != .moving(.follow) { set(.moving(.follow), now) }
         case .entering(let t), .moving(let t), .waiting(let t, _):
-            position = home
-            facingRight = false
-            set(t == .thirsty ? .waiting(.thirsty, nil) : .moving(t), now)
+            if t.place == .follow {
+                // Walk to the cursor, even if it is within the leash.
+                if phase != .moving(t) { set(.moving(t), now) }
+            } else {
+                position = home
+                facingRight = false
+                set(t.place == .still ? .waiting(t, nil) : .moving(t), now)
+            }
         case .hidden:
             break
         }
@@ -264,36 +261,37 @@ public struct Duck: Sendable {
 
     private var isFollowing: Bool {
         switch phase {
-        case .entering(.follow), .moving(.follow), .waiting(.follow, _), .asleep(.follow): true
-        default: false
+        case .entering(let t), .moving(let t), .waiting(let t, _), .asleep(let t): t.place == .follow
+        case .hidden, .happy, .leaving: false
         }
     }
 
     private mutating func leave(_ now: Date, _ s: Sensors) {
-        guard phase != .hidden && phase != .leaving else { return }
+        guard let visit = phase.visit else { return }
+        if case .leaving = phase { return }
         let screen = s.screens.first(where: { $0.frame.contains(position) })?.frame ?? stage
         exitX = screen.maxX + Motion.offscreen
-        set(.leaving, now)
+        set(.leaving(visit), now)
     }
 
-    private mutating func arrive(_ t: Thirst, _ now: Date, _ s: Sensors) {
-        switch t {
-        case .chill: facingRight = position.x < stage.midX
+    private mutating func arrive(_ t: Visit, _ now: Date, _ s: Sensors) {
+        switch t.place {
+        case .home: facingRight = position.x < stage.midX
         case .follow: facingRight = s.mouse.x > position.x
-        case .ask, .thirsty: break
+        case .ask, .still: break
         }
         let entering: Bool
         if case .entering = phase { entering = true } else { entering = false }
-        let trick: Trick? = entering ? .spin : t == .follow ? .shake : nil
+        let trick: Trick? = entering ? .spin : t.restingTrick
         set(.waiting(t, trick), now)
         if let trick { lastTrick = trick } else { scheduleTrick(t, now) }
     }
 
-    private func target(_ t: Thirst, _ s: Sensors) -> CGPoint {
-        switch t {
-        case .chill: return home
+    private func target(_ t: Visit, _ s: Sensors) -> CGPoint {
+        switch t.place {
+        case .home: return home
         case .ask: return CGPoint(x: max(stage.midX, stage.maxX - Motion.homeInset - Motion.askWalk), y: ground)
-        case .thirsty: return position
+        case .still: return position
         case .follow:
             let m = s.mouse
             let found = s.screens.first(where: { $0.frame.contains(m) })
@@ -334,7 +332,7 @@ public struct Duck: Sendable {
         return false
     }
 
-    private mutating func pickTrick(_ t: Thirst) -> Trick {
+    private mutating func pickTrick(_ t: Visit) -> Trick {
         let pool = Double.random(in: 0..<1, using: &rng) < t.oldTrickWeight ? t.oldTricks : t.newTricks
         let allowed = pool.filter { trick in
             if trick == lastTrick && pool.count > 1 { return false }
@@ -347,7 +345,7 @@ public struct Duck: Sendable {
         return trick
     }
 
-    private mutating func scheduleTrick(_ t: Thirst, _ now: Date) {
+    private mutating func scheduleTrick(_ t: Visit, _ now: Date) {
         nextTrickAt = now + .random(in: t.trickGap, using: &rng)
     }
 

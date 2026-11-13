@@ -19,7 +19,7 @@ private func stageSim(_ thirst: Thirst = .chill, seed: UInt64 = 7, facingRight: 
     sim.send(.tick)
     sim.send(.callNow)
     if thirst > .chill { sim.run(Double(thirst.rawValue - 1) * timings.levelStep, every: 100) }
-    sim.run(until: .waiting(thirst, nil))
+    sim.run(until: .waiting(.water(thirst), nil))
     return sim
 }
 
@@ -82,7 +82,7 @@ private extension Sim {
         sim.run(until: .hidden)
         sim.send(.callNow)
         #expect(sim.duck.look != previous)
-        sim.run(until: .waiting(.chill, .spin))
+        sim.run(until: .waiting(.water(.chill), .spin))
         #expect(sim.duck.frame(at: sim.time.now + 0.3).pose.eyes == .happy)
     }
 }
@@ -98,12 +98,12 @@ private extension Sim {
     let entering = sim.duck.look
     sim.send(.newLook)
     #expect(sim.duck.look != entering)
-    #expect(sim.duck.phase == .entering(.chill))
-    sim.run(until: .waiting(.chill, nil))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
+    sim.run(until: .waiting(.water(.chill), nil))
     let waiting = sim.duck.look
     sim.send(.newLook)
     #expect(sim.duck.look != waiting)
-    #expect(sim.duck.phase == .waiting(.chill, .spin))
+    #expect(sim.duck.phase == .waiting(.water(.chill), .spin))
     sim.run(Timings.normal.awayAfter + 1, idle: true)
     #expect(sim.duck.phase.isAsleep)
     #expect(sim.duck.canChangeLook)
@@ -124,13 +124,13 @@ private extension Sim {
     #expect(!sim.duck.canChangeLook)
     sim.send(.newLook)
     #expect(sim.duck.look == happy)
-    #expect(sim.duck.phase == .happy)
+    #expect(sim.duck.phase.isHappy)
     sim.run(1.4, every: 0.05)
-    #expect(sim.duck.phase == .leaving)
+    #expect(sim.duck.phase.isLeaving)
     #expect(!sim.duck.canChangeLook)
     sim.send(.newLook)
     #expect(sim.duck.look == happy)
-    #expect(sim.duck.phase == .leaving)
+    #expect(sim.duck.phase.isLeaving)
 }
 
 @Test(arguments: [Thirst.chill, .ask, .thirsty, .follow])
@@ -163,9 +163,9 @@ func movesStayInTheirStage(thirst: Thirst) {
         if !seen.contains(trick) { seen.append(trick) }
         if !new.isEmpty { #expect(sim.rate == 30 || trick == .blink || trick == .lookBack) }
         sim.finishMove()
-        #expect(sim.duck.phase == .waiting(thirst, nil))
+        #expect(sim.duck.phase == .waiting(.water(thirst), nil))
         sim.run(0.5, every: 0.05)
-        #expect(sim.duck.phase == .waiting(thirst, nil), "the gap starts at the end of the move")
+        #expect(sim.duck.phase == .waiting(.water(thirst), nil), "the gap starts at the end of the move")
     }
     for trick in old + new { #expect(seen.contains(trick), "never picked \(trick)") }
     let fraction = Double(oldCount) / 600

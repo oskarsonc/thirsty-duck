@@ -64,17 +64,17 @@ func writePNG(_ img: CGImage, _ url: URL) {
         return f
     }
     sim.send(.callNow)
-    sim.until { $0.phase == .waiting(.chill, nil) && $0.bubble != nil }
+    sim.until { $0.phase == .waiting(.water(.chill), nil) && $0.bubble != nil }
     for _ in 0..<24 { sim.tick() }
     shots.append(("1 · chill", shot()))
     for (label, level) in [("2 · ask", Thirst.ask), ("3 · thirsty", .thirsty), ("4 · follow", .follow)] {
-        sim.until { $0.phase == .waiting(level, nil) }
+        sim.until { $0.phase == .waiting(.water(level), nil) }
         for _ in 0..<24 { sim.tick() }
         shots.append((label, shot()))
     }
     for _ in 0..<336 { sim.tick(idle: true) }
     shots.append(("away · asleep", shot()))
-    sim.until { $0.phase == .waiting(.follow, nil) }
+    sim.until { $0.phase == .waiting(.water(.follow), nil) }
     for _ in 0..<24 { sim.tick() }
     sim.send(.click)
     for _ in 0..<14 { sim.tick() }
@@ -236,11 +236,11 @@ struct DemoScene: View {
     func caption(_ d: Duck) -> String {
         switch d.phase {
         case .hidden: "You work at your Mac…"
-        case .entering(.chill), .moving(.chill), .waiting(.chill, _): "1 · Chill: it walks in and does little tricks"
-        case .entering(.ask), .moving(.ask), .waiting(.ask, _): "2 · Ask: “drink! 💧”"
-        case .entering(.thirsty), .moving(.thirsty), .waiting(.thirsty, _): "3 · Thirsty: it sweats and shakes"
+        case .entering(.water(.chill)), .moving(.water(.chill)), .waiting(.water(.chill), _): "1 · Chill: it walks in and does little tricks"
+        case .entering(.water(.ask)), .moving(.water(.ask)), .waiting(.water(.ask), _): "2 · Ask: “drink! 💧”"
+        case .entering(.water(.thirsty)), .moving(.water(.thirsty)), .waiting(.water(.thirsty), _): "3 · Thirsty: it sweats and shakes"
         case .asleep: "Away from the Mac? It naps, and the clock stops 💤"
-        case .entering(.follow), .moving(.follow), .waiting(.follow, _): "4 · Follow: it walks to your cursor"
+        case .entering(.water(.follow)), .moving(.water(.follow)), .waiting(.water(.follow), _): "4 · Follow: it walks to your cursor"
         case .happy: "Click it when you drank 💛"
         case .leaving: "…and it comes back in 30 minutes"
         }
@@ -279,7 +279,7 @@ struct DemoScene: View {
     }
 
     work(2.0)
-    while sim.duck.level < .thirsty || sim.duck.phase != .waiting(.thirsty, nil) { work(1.0 / 30) }
+    while sim.duck.level != .water(.thirsty) || sim.duck.phase != .waiting(.water(.thirsty), nil) { work(1.0 / 30) }
     work(2.0)
     // Away: no input until it naps, then back.
     sim.duck.timings.awayAfter = 0.8
@@ -290,7 +290,7 @@ struct DemoScene: View {
     glide(to: CGPoint(x: 430, y: 90), in: 1.0)
     for _ in 0..<15 { step() }
     glide(to: CGPoint(x: 250, y: 140), in: 1.2)
-    while sim.duck.phase != .waiting(.follow, nil) { step() }
+    while sim.duck.phase != .waiting(.water(.follow), nil) { step() }
     for _ in 0..<12 { step() }
     // Move to the duck and click it.
     let p = sim.duck.position
@@ -298,7 +298,7 @@ struct DemoScene: View {
     for _ in 0..<6 { step() }
     sim.send(.click)
     ring = 0
-    while sim.duck.phase == .happy { step() }
+    while case .happy = sim.duck.phase { step() }
     while sim.duck.isVisible { step() }
     for _ in 0..<12 { step() }
 
@@ -314,7 +314,7 @@ struct DemoScene: View {
 extension DuckPhase {
     var isFollowing: Bool {
         switch self {
-        case .entering(.follow), .moving(.follow), .waiting(.follow, _): true
+        case .entering(.water(.follow)), .moving(.water(.follow)), .waiting(.water(.follow), _): true
         default: false
         }
     }

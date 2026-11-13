@@ -18,9 +18,9 @@ extension Sim {
     #expect(sim.rate == 1, "hidden")
     sim.run(45 * minute)
     #expect(sim.rate == 30, "walking in")
-    sim.run(until: .waiting(.chill, nil))
+    sim.run(until: .waiting(.water(.chill), nil))
     sim.run(Motion.bubblePop, every: 0.1)
-    #expect(sim.duck.phase == .waiting(.chill, nil))
+    #expect(sim.duck.phase == .waiting(.water(.chill), nil))
     #expect(sim.rate == 10, "sitting")
     sim.run(Timings.normal.awayAfter, idle: true)
     #expect(sim.rate == 2, "asleep")
@@ -35,16 +35,16 @@ extension Sim {
     sim.run(61 * minute)
     sim.sensors.mouse = CGPoint(x: 1000, y: 600)
     sim.run(0.5, every: 1.0 / 30)
-    #expect(sim.duck.phase == .moving(.follow))
+    #expect(sim.duck.phase == .moving(.water(.follow)))
     #expect(sim.rate == 30)
-    sim.run(until: .waiting(.follow, nil))
+    sim.run(until: .waiting(.water(.follow), nil))
     #expect(sim.rate == 10)
 }
 
 @Test func newBubblePopsAtFullRate() {
     var sim = Sim()
     sim.run(50 * minute)
-    sim.run(until: .waiting(.ask, nil))
+    sim.run(until: .waiting(.water(.ask), nil))
     sim.run(Motion.bubblePop, every: 0.1)
     sim.send(.click)
     #expect(sim.duck.bubble?.text == "thank you! 💛")
@@ -56,9 +56,9 @@ extension Sim {
 @Test func frameStaysTheSameWhileTheDuckSitsStill() {
     var sim = Sim()
     sim.run(45 * minute)
-    sim.run(until: .waiting(.chill, nil))
+    sim.run(until: .waiting(.water(.chill), nil))
     sim.run(Motion.bubblePop, every: 0.1)
-    #expect(sim.duck.phase == .waiting(.chill, nil))
+    #expect(sim.duck.phase == .waiting(.water(.chill), nil))
     let still = sim.duck.frame(at: sim.time.now)
     #expect(sim.duck.frame(at: sim.time.now + 0.1) == still)
 }

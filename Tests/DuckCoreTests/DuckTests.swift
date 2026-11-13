@@ -65,7 +65,7 @@ struct Sim {
 
     var thirst: Thirst? {
         switch duck.phase {
-        case .entering(let t), .waiting(let t, _), .moving(let t), .asleep(let t): t
+        case .entering(.water(let t)), .waiting(.water(let t), _), .moving(.water(let t)), .asleep(.water(let t)): t
         case .hidden, .happy, .leaving: nil
         }
     }
@@ -101,7 +101,7 @@ let minute: TimeInterval = 60
     sim.run(45 * minute)
     #expect(sim.duck.position.x > 1440)
     sim.run(3, every: 1.0 / 60)
-    #expect(sim.duck.phase == .waiting(.chill, .spin))
+    #expect(sim.duck.phase == .waiting(.water(.chill), .spin))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
     #expect(!sim.duck.facingRight)
 }
@@ -112,7 +112,7 @@ let minute: TimeInterval = 60
     sim.run(4 * minute, every: 0.05)
     #expect(sim.duck.phase.isWaiting(.ask))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset - Motion.askWalk, y: 0))
-    sim.run(until: .waiting(.ask, nil))
+    sim.run(until: .waiting(.water(.ask), nil))
     #expect(sim.duck.bubble?.text == "drink! 💧")
 }
 
@@ -123,7 +123,7 @@ let minute: TimeInterval = 60
     sim.sensors.mouse = CGPoint(x: -700, y: 500)
     sim.run(45 * minute)
     sim.run(3, every: 1.0 / 60)
-    #expect(sim.duck.phase == .waiting(.chill, .spin))
+    #expect(sim.duck.phase == .waiting(.water(.chill), .spin))
     #expect(sim.duck.position == CGPoint(x: 1440 - Motion.homeInset, y: 0))
 }
 
@@ -233,7 +233,7 @@ func followDuckAndBubbleStayOnTheCursorScreen(mouse: CGPoint) {
     sim.run(20 * minute, idle: true)
     #expect(sim.duck.phase == .asleep(level))
     sim.run(1)
-    #expect(sim.thirst == level)
+    #expect(sim.duck.phase.visit == level)
     #expect(sim.duck.phase != .asleep(level))
 }
 
@@ -358,7 +358,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(50 * minute)
     #expect(sim.duck.isVisible)
     sim.run(11 * minute)
-    #expect(sim.duck.phase == .leaving || sim.duck.phase == .hidden)
+    #expect(sim.duck.phase.isLeaving || sim.duck.phase == .hidden)
     #expect(sim.duck.workTime == 0)
 }
 
@@ -366,11 +366,11 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     var sim = Sim()
     sim.run(50 * minute)
     sim.send(.click)
-    #expect(sim.duck.phase == .happy)
+    #expect(sim.duck.phase.isHappy)
     #expect(sim.duck.workTime == 0)
     #expect(sim.duck.bubble?.text == "thank you! 💛")
     sim.run(2, every: 1.0 / 60)
-    #expect(sim.duck.phase == .leaving)
+    #expect(sim.duck.phase.isLeaving)
     sim.run(30, every: 1.0 / 60)
     #expect(sim.duck.position.x > 1440)
     #expect(sim.duck.phase == .hidden)
@@ -385,7 +385,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     var sim = Sim()
     sim.run(5 * minute)
     sim.send(.callNow)
-    #expect(sim.duck.phase == .entering(.chill))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
     sim.run(5 * minute + 10, every: 0.05)
     #expect(sim.thirst == .ask)
 }
@@ -396,9 +396,9 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     sim.run(30 * minute, idle: true)
     sim.sensors.idleSeconds = 0
     sim.send(.callNow)
-    #expect(sim.duck.phase == .entering(.chill))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
     sim.run(1.0 / 30)
-    #expect(sim.duck.phase == .entering(.chill))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
 }
 
 @Test func aShorterReminderIntervalTakesEffectAtOnce() {
@@ -407,7 +407,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(sim.duck.phase == .hidden)
     sim.duck.timings.reminderInterval = 20 * minute
     sim.run(1)
-    #expect(sim.duck.phase == .entering(.chill))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
 }
 
 @Test func fastTimingsAreShortAndIgnoreWorkHours() {
@@ -419,7 +419,7 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
     #expect(fast.workHours == nil)
     var sim = Sim(timings: fast, hour: 23)
     sim.run(10)
-    #expect(sim.duck.phase == .entering(.chill))
+    #expect(sim.duck.phase == .entering(.water(.chill)))
 }
 
 @Test func fastLongBreakAcrossMacSleepResets() {
@@ -442,9 +442,12 @@ func sleepJustUnderALongBreakThenWorkDoesNotReset(idleCounterRuns: Bool) {
 
 extension DuckPhase {
     func isWaiting(_ t: Thirst) -> Bool {
-        if case .waiting(t, _) = self { return true }
+        if case .waiting(.water(t), _) = self { return true }
         return false
     }
+
+    var isHappy: Bool { if case .happy = self { return true }; return false }
+    var isLeaving: Bool { if case .leaving = self { return true }; return false }
 
     var isAsleep: Bool {
         if case .asleep = self { return true }
@@ -486,7 +489,7 @@ extension DuckPhase {
     #expect(sim.duck.isVisible)
     sim.duck.timings.workHours?.endHour = 15
     sim.run(1)
-    #expect(sim.duck.phase == .leaving)
+    #expect(sim.duck.phase.isLeaving)
     #expect(sim.duck.workTime == 0)
 }
 
@@ -554,7 +557,7 @@ func aThirstyDuckComesBackFromAChangedScreen(removed: Bool) {
     sim.sensors.mouse = CGPoint(x: 2000, y: 400)
     sim.run(61 * minute)
     sim.run(Timings.normal.awayAfter + 1, idle: true)
-    #expect(sim.duck.phase == .asleep(.follow))
+    #expect(sim.duck.phase == .asleep(.water(.follow)))
     sim.sensors.screens = [main]
     sim.run(20, idle: true)
     #expect(main.frame.contains(sim.duck.position))
