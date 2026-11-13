@@ -6,9 +6,9 @@ public struct WorkHours: Sendable {
     public var weekdays: Set<Int> = [1, 2, 3, 4, 5, 6, 7]
     public var startHour = 8
     public var endHour = 23
-    public var calendar = Calendar.current
+    public var calendar: Calendar
 
-    public init(calendar: Calendar = .current) {
+    public init(calendar: Calendar = .autoupdatingCurrent) {
         self.calendar = calendar
     }
 

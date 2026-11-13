@@ -42,7 +42,7 @@ By default the duck comes every day between 08:00 and 23:00; change it in **Acti
 
 ![The stretch duck: reach up, side bend and toe touch on its mat, then come on, follow, and nice](docs/stretch.png)
 
-Once a day, at the time in **Stretch at** (12:00 by default), the duck comes with a sweatband and a yoga mat and does stretches: reach up, side bend and touch its toes. It says `stretch time! 🙆`. After 5 minutes it stretches faster and says `come on, stretch!`, and after 10 minutes it follows your cursor: `STRETCH NOW!`. Click it when you have stretched; it says `nice! 💪` and does not come again until tomorrow.
+Once a day, at the time in **Stretch at** (12:00 by default), the duck comes with a sweatband and a yoga mat and does stretches: reach up, side bend and touch its toes. It says `stretch time! 🙆`. After 5 minutes it stretches faster and says `come on, stretch!`, and after 10 minutes it follows your cursor: `STRETCH NOW!`. Click it when you have stretched; it says `nice! 💪` and does not come again until tomorrow. The app saves the calendar day as `yyyy-MM-dd`, so a restart or a time zone change keeps that day done. The reminder clock follows the current time zone while the app runs.
 
 If the water duck is on screen at the stretch time, the stretch duck comes after it. If you are away, it comes when you are back, but never outside the active hours. The stretch does not count as a drink, so the water clock keeps running.
 

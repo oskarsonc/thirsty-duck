@@ -48,14 +48,14 @@ enum Settings {
         set { defaults.set(newValue ?? -1, forKey: "stretchMinutes") }
     }
 
-    /// The day of the last stretch click, so a restart does not bring the stretch duck again that day.
-    static var stretchDoneDay: Date? {
-        get { defaults.object(forKey: "stretchDoneDay") as? Date }
+    /// Calendar day (yyyy-MM-dd) of the last stretch click, kept across restarts and time zone changes.
+    static var stretchDoneDay: String? {
+        get { defaults.object(forKey: "stretchDoneDay") as? String }
         set { defaults.set(newValue, forKey: "stretchDoneDay") }
     }
 
     static var workHours: WorkHours {
-        var hours = WorkHours()
+        var hours = WorkHours(calendar: .autoupdatingCurrent)
         hours.startHour = startHour
         hours.endHour = endHour
         hours.weekdays = weekends ? Set(1...7) : Set(2...6)

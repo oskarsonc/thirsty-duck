@@ -60,19 +60,17 @@ struct DuckView: View {
 
     /// 22 cells wide under the feet, with the rolled end behind the duck.
     private func drawMat(_ ctx: GraphicsContext) {
-        let x = Layout.panel.width / 2 + pose.dx
-        let half = 11 * Sprite.cell
-        ctx.fill(Path(CGRect(x: x - half, y: groundY, width: 2 * half, height: 5)), with: .color(Color(hex: 0x9775FA)))
-        ctx.fill(Path(CGRect(x: x - half, y: groundY + 5, width: 2 * half, height: 2)), with: .color(Color(hex: 0x7048E8)))
-        let rollX = frame.facingRight ? x - half - 3 : x + half - 5
-        ctx.fill(Path(CGRect(x: rollX, y: groundY - 5, width: 8, height: 12)), with: .color(Color(hex: 0x7048E8)))
+        let colors: [UInt32] = [0x9775FA, 0x7048E8, 0x7048E8]
+        for (rect, color) in zip(Layout.matRects(facingRight: frame.facingRight, dx: pose.dx), colors) {
+            ctx.fill(Path(rect), with: .color(Color(hex: color)))
+        }
     }
 
     /// Tilt, spin and scale are in the duck's own space, so they go inside the mirror.
     private func drawSprite(_ ctx: GraphicsContext) {
         var ctx = ctx
-        if pose.clipsAtGround {
-            ctx.clip(to: Path(CGRect(x: 0, y: 0, width: Layout.panel.width, height: groundY + 1)))
+        if let clip = Layout.spriteClip(frame) {
+            ctx.clip(to: Path(clip))
         }
         ctx.opacity = Sprite.paint(frame.look.palette).opacity
         ctx.drawLayer { ctx in

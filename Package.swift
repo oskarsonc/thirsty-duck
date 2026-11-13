@@ -8,5 +8,6 @@ let package = Package(
         .target(name: "DuckCore"),
         .executableTarget(name: "ThirstyDuck", dependencies: ["DuckCore"]),
         .testTarget(name: "DuckCoreTests", dependencies: ["DuckCore"]),
+        .testTarget(name: "ThirstyDuckTests", dependencies: ["DuckCore", "ThirstyDuck"]),
     ]
 )

@@ -5,6 +5,7 @@ public enum Layout {
     public static let panel = CGSize(width: 240, height: 240)
     /// Distance from the panel bottom to the line the duck stands on.
     public static let ground: CGFloat = 10
+    public static let matHeight: CGFloat = 7
     public static let sprite = CGSize(width: 80, height: 70)
     public static let bubbleGap: CGFloat = 6
     /// The bubble is drawn in pixels of this many points. The padding, with the outline in it, and the tail count them.
@@ -47,6 +48,22 @@ public enum Layout {
             .translatedBy(x: 0, y: 35).scaledBy(x: pose.scaleX, y: pose.scaleY)
     }
 
+    /// Mat fill, dark edge and rolled end, in Canvas coordinates.
+    public static func matRects(facingRight: Bool, dx: CGFloat) -> [CGRect] {
+        let x = panel.width / 2 + dx
+        let half = 11 * sprite.width / 16
+        let groundY = panel.height - ground
+        let rollX = facingRight ? x - half - 3 : x + half - 5
+        return [CGRect(x: x - half, y: groundY - matHeight, width: 2 * half, height: 5),
+                CGRect(x: x - half, y: groundY - 2, width: 2 * half, height: 2),
+                CGRect(x: rollX, y: groundY - 12, width: 8, height: 12)]
+    }
+
+    public static func spriteClip(_ frame: Frame) -> CGRect? {
+        guard frame.pose.clipsAtGround else { return nil }
+        return CGRect(x: 0, y: 0, width: panel.width, height: panel.height - ground + (frame.mat ? 0 : 1))
+    }
+
     static func artBounds(look: Look, pose: Pose) -> CGRect {
         let headroom = CGFloat(look.headroom)
         var cells = CGRect(x: 0, y: -headroom, width: 16, height: 14 + headroom)
@@ -61,8 +78,8 @@ public enum Layout {
         let pose = frame.pose
         let drawn = artBounds(look: frame.look, pose: pose).applying(spriteTransform(pose))
         var duck = CGRect(x: drawn.minX, y: panel.height - drawn.maxY, width: drawn.width, height: drawn.height)
-        if pose.clipsAtGround {
-            duck = duck.intersection(CGRect(x: 0, y: ground - 1, width: panel.width, height: panel.height - ground + 1))
+        if let clip = spriteClip(frame) {
+            duck = duck.intersection(CGRect(x: clip.minX, y: panel.height - clip.maxY, width: clip.width, height: clip.height))
         }
         guard let bubble else { return [duck] }
         let shown = bubbleRect(CGRect(origin: .zero, size: bubble), size: bubble, headroom: frame.look.headroom, scale: frame.bubbleScale)

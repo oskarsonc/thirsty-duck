@@ -66,13 +66,16 @@ extension Duck {
         default: .none
         }
         let pose = Pose(duck: self, now: now)
-        let mat: Bool
-        if case .waiting(let visit, _) = phase { mat = visit.usesMat } else { mat = false }
         return Frame(pose: pose, facingRight: facingRight, effect: effect,
                      bubble: bubble, bubbleScale: Frame.bubbleScale(age: now.timeIntervalSince(bubbleSince)),
                      look: look, particles: pose.particles, lookClock: look.isAnimated ? Int(w * 12) : 0,
                      waterPhase: pose.water ? w * 4 : 0,
-                     sweatband: phase.visit?.wearsSweatband ?? false, mat: mat)
+                     sweatband: phase.visit?.wearsSweatband ?? false, mat: usesMat)
+    }
+
+    var usesMat: Bool {
+        if case .waiting(let visit, _) = phase { return visit.usesMat }
+        return false
     }
 
     /// Ticks per second the app needs to show the duck smoothly.
@@ -131,13 +134,13 @@ public struct Pose: Equatable, Sendable {
                 wingUp = q > 0.3
                 eyes = q > 0.7 ? .closed : .open
             case .sideBend:
-                tilt = -16 * sin(k * 2 * .pi)
+                tilt = -10 * sin(k * 2 * .pi)
                 wingUp = true
             case .toeTouch:
                 let seconds = k * trick.duration
                 let q = stretchEase(min(1, seconds / 1.1)) * (1 - stretchEase(max(0, (seconds - 1.7) / 1.1)))
-                tilt = 30 * q
-                scaleY = 1 - 0.08 * q
+                tilt = 15 * q
+                scaleY = 1 - 0.15 * q
                 eyes = q > 0.6 ? .closed : .open
             case .blink: eyes = .closed
             case .lookBack: mirrored.toggle()
@@ -410,10 +413,14 @@ public struct Pose: Equatable, Sendable {
             for i in particles.indices { particles[i].x = -particles[i].x }
         }
         if (item ?? duck.look.item) == .skateboard { lift += 10 }
-        if duck.look.palette == .ghost { lift += 3 + 3 * sin(2.2 * w) }
+        if duck.usesMat {
+            lift += Layout.matHeight
+            clipsAtGround = true
+        } else if duck.look.palette == .ghost {
+            lift += 3 + 3 * sin(2.2 * w)
+        }
         switch duck.phase {
-        case .waiting(_, .roll?), .waiting(_, .backflip?), .waiting(_, .trip?),
-             .waiting(_, .reachUp?), .waiting(_, .sideBend?), .waiting(_, .toeTouch?):
+        case .waiting(_, .roll?), .waiting(_, .backflip?), .waiting(_, .trip?):
             var bounds = Layout.artBounds(look: duck.look, pose: self)
             if tilt != 0 || spin != 0 {
                 // Sprite.fill extends turned cells right and down to hide seams.

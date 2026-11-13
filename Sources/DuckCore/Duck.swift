@@ -5,8 +5,8 @@ import Foundation
 public struct Duck: Sendable {
     /// The app may change `reminderInterval` while it runs; the clock keeps its count.
     public var timings: Timings
-    /// Calendar day of the last stretch click. The app saves and restores this value.
-    public var stretchDoneDay: Date?
+    /// Calendar day (yyyy-MM-dd) of the last stretch click. The app saves and restores this value.
+    public var stretchDoneDay: String?
     public internal(set) var phase: DuckPhase = .hidden
     public internal(set) var phaseStart: Date = .distantPast
     public private(set) var shownAt: Date = .distantPast
@@ -123,7 +123,7 @@ public struct Duck: Sendable {
         case .entering(let t), .waiting(let t, _), .moving(let t), .asleep(let t):
             switch t {
             case .water: workTime = 0
-            case .stretch: stretchDoneDay = calendar.startOfDay(for: now)
+            case .stretch: stretchDoneDay = day(now)
             }
             lastInput = now
             set(.happy(t), now)
@@ -132,11 +132,16 @@ public struct Duck: Sendable {
         }
     }
 
-    private var calendar: Calendar { timings.workHours?.calendar ?? .current }
+    private var calendar: Calendar { timings.workHours?.calendar ?? .autoupdatingCurrent }
+
+    private func day(_ date: Date) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+    }
 
     private func stretchIsDue(_ now: Date) -> Bool {
         guard let minutes = timings.stretchAt, (0..<24 * 60).contains(minutes) else { return false }
-        if let done = stretchDoneDay, calendar.isDate(done, inSameDayAs: now) { return false }
+        if stretchDoneDay == day(now) { return false }
         let clock = calendar.dateComponents([.hour, .minute], from: now)
         return clock.hour! * 60 + clock.minute! >= minutes
     }

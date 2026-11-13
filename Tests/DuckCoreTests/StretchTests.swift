@@ -108,9 +108,8 @@ private extension Sim {
 @Test func aStretchClickMarksOnlyTodayAndTheNextDayComesAgain() {
     var sim = stretchSim()
     sim.run(60 * minute)
-    let calendar = sim.duck.timings.workHours!.calendar
     sim.send(.click)
-    let today = calendar.startOfDay(for: sim.time.now)
+    let today = "2026-10-21"
     #expect(sim.duck.stretchDoneDay == today)
     #expect(sim.duck.phase.isHappy)
     let frame = sim.duck.frame(at: sim.time.now + 0.2)
@@ -129,11 +128,11 @@ private extension Sim {
 
 @Test func aRestoredDoneDayPreventsAnotherDailyVisit() {
     var sim = stretchSim()
-    let today = sim.duck.timings.workHours!.calendar.startOfDay(for: sim.time.now)
+    let today = "2026-10-21"
     sim.duck.stretchDoneDay = today
     sim.run(2 * 60 * minute)
     #expect(sim.duck.phase == .hidden)
-    sim.duck.stretchDoneDay = today - 24 * 60 * minute
+    sim.duck.stretchDoneDay = "2026-10-20"
     sim.run(1)
     #expect(sim.duck.phase == .entering(.stretch(.remind)))
 }
@@ -335,7 +334,7 @@ func stretchPicksOnlyItsThreeMovesWithoutRepeats(level: StretchLevel) {
 }
 
 @Test(arguments: [Trick.reachUp, .sideBend, .toeTouch], [false, true])
-func stretchPosesMatchThePrototypeAndStayAboveGround(trick: Trick, facingRight: Bool) {
+func stretchPosesStayOnTheirMat(trick: Trick, facingRight: Bool) {
     var sim = stretchSim()
     if facingRight {
         let narrow = CGRect(x: 0, y: 0, width: 200, height: 900)
@@ -357,7 +356,9 @@ func stretchPosesMatchThePrototypeAndStayAboveGround(trick: Trick, facingRight: 
             art.size.height += 0.4
         }
         let drawn = art.applying(Layout.spriteTransform(frame.pose))
-        #expect(drawn.maxY <= Layout.panel.height - Layout.ground + 0.0001)
+        let clip = Layout.spriteClip(frame)!
+        #expect(drawn.intersection(clip).maxY <= Layout.panel.height - Layout.ground + 0.0001)
+        #expect(Layout.hitRegions(frame, bubble: nil)[0].minY >= Layout.ground - 0.0001)
         #expect(frame.sweatband && frame.mat)
         #expect(frame.effect == .none)
     }
@@ -369,11 +370,11 @@ func stretchPosesMatchThePrototypeAndStayAboveGround(trick: Trick, facingRight: 
         #expect(abs(pose.scaleX - 0.93) < 0.0001)
         #expect(pose.wingUp && pose.eyes == .closed)
     case .sideBend:
-        #expect(abs(pose.tilt + 16) < 0.0001)
+        #expect(abs(pose.tilt + 10) < 0.0001)
         #expect(pose.wingUp)
     case .toeTouch:
-        #expect(abs(pose.tilt - 30) < 0.0001)
-        #expect(abs(pose.scaleY - 0.92) < 0.0001)
+        #expect(abs(pose.tilt - 15) < 0.0001)
+        #expect(abs(pose.scaleY - 0.85) < 0.0001)
         #expect(pose.eyes == .closed)
     default: Issue.record("unexpected stretch move")
     }
@@ -420,7 +421,7 @@ func stretchFollowFitsItsBubbleAndReturnsFromARemovedScreen(mouse: CGPoint) {
     sim.run(1)
     #expect(sim.duck.phase == .entering(.stretch(.remind)))
     sim.send(.click)
-    #expect(sim.duck.stretchDoneDay == calendar.date(from: DateComponents(year: 2026, month: 11, day: 13)))
+    #expect(sim.duck.stretchDoneDay == "2026-11-13")
 }
 
 @Test func normalStretchDefaultsToNoonAndFastTurnsItOff() {
@@ -462,5 +463,56 @@ func stretchKeepsNoonOnDaylightSavingDays(month: Int, day: Int) {
     sim.run(1)
     #expect(sim.duck.phase == .entering(.stretch(.remind)))
     sim.send(.click)
-    #expect(sim.duck.stretchDoneDay == calendar.startOfDay(for: sim.time.now))
+    #expect(sim.duck.stretchDoneDay == String(format: "2026-%02d-%02d", month, day))
+}
+
+@Test func savedStretchDaySurvivesATimeZoneChange() throws {
+    var ljubljana = Calendar(identifier: .gregorian)
+    ljubljana.timeZone = TimeZone(identifier: "Europe/Ljubljana")!
+    var newYork = ljubljana
+    newYork.timeZone = TimeZone(identifier: "America/New_York")!
+    var sim = stretchSim()
+    sim.duck.timings.workHours = WorkHours(calendar: ljubljana)
+    sim.time.now = ljubljana.date(from: DateComponents(year: 2026, month: 11, day: 13, hour: 12))!
+    sim.duck = Duck(timings: sim.duck.timings, seed: 7)
+    sim.send(.stretchNow)
+    sim.send(.click)
+    let suite = "ThirstyDuckTests-\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    defaults.set(sim.duck.stretchDoneDay, forKey: "done")
+    #expect(defaults.string(forKey: "done") == "2026-11-13")
+
+    var timings = sim.duck.timings
+    timings.workHours = WorkHours(calendar: newYork)
+    sim.duck = Duck(timings: timings, seed: 7)
+    sim.duck.stretchDoneDay = defaults.object(forKey: "done") as? String
+    sim.time.now = newYork.date(from: DateComponents(year: 2026, month: 11, day: 13, hour: 12))!
+    sim.send(.tick)
+    sim.run(1)
+    #expect(sim.duck.phase == .hidden)
+    sim.time.now = newYork.date(from: DateComponents(year: 2026, month: 11, day: 14, hour: 12))!
+    sim.send(.tick)
+    sim.run(1)
+    #expect(sim.duck.phase == .entering(.stretch(.remind)))
+}
+
+@Test(arguments: [false, true])
+func matAndRestingFeetStayOnScreen(facingRight: Bool) {
+    var sim = stretchSim()
+    let screen = CGRect(x: -300, y: -900, width: facingRight ? 200 : 1440, height: 900)
+    sim.sensors.screens = [Screen(frame: screen, visible: screen)]
+    sim.send(.stretchNow)
+    sim.run(until: .waiting(.stretch(.remind), nil))
+    let frame = sim.duck.frame(at: sim.time.now)
+    #expect(frame.mat)
+    #expect(frame.facingRight == facingRight)
+    let origin = CGPoint(x: sim.duck.position.x - Layout.panel.width / 2, y: sim.duck.position.y - Layout.ground)
+    for rect in Layout.matRects(facingRight: facingRight, dx: frame.pose.dx) {
+        let global = CGRect(x: origin.x + rect.minX, y: origin.y + Layout.panel.height - rect.maxY,
+                            width: rect.width, height: rect.height)
+        #expect(screen.contains(global))
+    }
+    let feet = CGPoint(x: 0, y: 0).applying(Layout.spriteTransform(frame.pose))
+    #expect(abs(feet.y - (Layout.panel.height - Layout.ground - Layout.matHeight)) < 0.0001)
 }
