@@ -12,6 +12,7 @@ extension Timings {
     static let test: Timings = {
         var t = Timings.normal
         t.reminderInterval = 45 * 60
+        t.stretchAt = nil
         return t
     }()
 }
@@ -66,7 +67,7 @@ struct Sim {
     var thirst: Thirst? {
         switch duck.phase {
         case .entering(.water(let t)), .waiting(.water(let t), _), .moving(.water(let t)), .asleep(.water(let t)): t
-        case .hidden, .happy, .leaving: nil
+        default: nil
         }
     }
 }
@@ -446,8 +447,15 @@ extension DuckPhase {
         return false
     }
 
-    var isHappy: Bool { if case .happy = self { return true }; return false }
-    var isLeaving: Bool { if case .leaving = self { return true }; return false }
+    var isHappy: Bool {
+        if case .happy = self { return true }
+        return false
+    }
+
+    var isLeaving: Bool {
+        if case .leaving = self { return true }
+        return false
+    }
 
     var isAsleep: Bool {
         if case .asleep = self { return true }

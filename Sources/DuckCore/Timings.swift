@@ -39,13 +39,16 @@ public struct Timings: Sendable {
     public var longBreak: TimeInterval
     /// `nil` means always work time.
     public var workHours: WorkHours?
+    /// Minutes after midnight; `nil` turns the daily stretch reminder off.
+    public var stretchAt: Int? = nil
 
     public static let normal = Timings(
         reminderInterval: 30 * 60,
         levelStep: 5 * 60,
         awayAfter: 5 * 60,
         longBreak: 30 * 60,
-        workHours: WorkHours()
+        workHours: WorkHours(),
+        stretchAt: 12 * 60
     )
 
     /// For a demo: a short wait, then long enough on each level to watch it.

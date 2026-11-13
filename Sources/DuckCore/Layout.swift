@@ -12,8 +12,12 @@ public enum Layout {
     public static let bubblePadding = (x: 4, y: 3)
     public static let bubbleTail = 2
 
-    public static let followBubble = bubbleSize(Bubble.follow.text)
-    /// Room the level 4 duck needs around its bottom center: half its bubble at the top of the pop
+    public static let followBubble: CGSize = {
+        let water = bubbleSize(Bubble.follow.text)
+        let stretch = bubbleSize(Bubble.stretchFollow.text)
+        return CGSize(width: max(water.width, stretch.width), height: max(water.height, stretch.height))
+    }()
+    /// Room either follow duck needs around its bottom center: half its bubble at the top of the pop
     /// on each side, and the sprite with that bubble on top. The point extra is for the snap in `bubbleRect`.
     public static let followHalfWidth = followBubble.width * Frame.maxBubbleScale / 2 + 1
     public static let maxHeadroom: CGFloat = 8 * 5

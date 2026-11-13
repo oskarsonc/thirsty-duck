@@ -5,10 +5,12 @@ import Foundation
 public struct Duck: Sendable {
     /// The app may change `reminderInterval` while it runs; the clock keeps its count.
     public var timings: Timings
+    /// Calendar day of the last stretch click. The app saves and restores this value.
+    public var stretchDoneDay: Date?
     public internal(set) var phase: DuckPhase = .hidden
     public internal(set) var phaseStart: Date = .distantPast
     public private(set) var shownAt: Date = .distantPast
-    /// Counted work time since the last reset. It drives both the reminder and the thirst level.
+    /// Counted work time since the last water reset. It also measures each visit from its arrival.
     public private(set) var workTime: TimeInterval = 0
     /// Bottom center of the duck, in global AppKit coordinates.
     public private(set) var position: CGPoint = .zero
@@ -21,7 +23,7 @@ public struct Duck: Sendable {
     private var stage: CGRect = .zero
     /// The frame of the screen the duck came in on. If it goes away or changes, the duck moves to a connected screen.
     private var stageFrame: CGRect = .zero
-    /// `workTime` when the duck came. Thirst counts from here, so a new interval does not change the current level.
+    /// `workTime` when the duck came, so a new interval does not change the current visit level.
     private var arrivedAt: TimeInterval?
     /// The real bottom edge of the screen. The Dock may not reach the duck, so it does not stand on it.
     private var ground: CGFloat = 0
@@ -85,11 +87,14 @@ public struct Duck: Sendable {
 
     public mutating func step(now: Date, sensors: Sensors, input: DuckInput = .tick) {
         switch input {
-        case .click: click(now)
-        case .callNow: callNow(now, sensors)
+        case .click:
+            tick(now, sensors, inputAt: now, allowArrival: false)
+            click(now)
+        case .callNow: call(.water(.chill), now, sensors)
+        case .stretchNow: call(.stretch(.remind), now, sensors)
         case .newLook:
-            if canChangeLook {
-                look = Look.random(using: &rng, unlike: look)
+            if canChangeLook, let visit = phase.visit {
+                look = visit.randomLook(using: &rng, unlike: look)
                 if case .waiting(let t, _) = phase {
                     lastTrick = .spin
                     set(.waiting(t, .spin), now)
@@ -116,7 +121,10 @@ public struct Duck: Sendable {
     private mutating func click(_ now: Date) {
         switch phase {
         case .entering(let t), .waiting(let t, _), .moving(let t), .asleep(let t):
-            workTime = 0
+            switch t {
+            case .water: workTime = 0
+            case .stretch: stretchDoneDay = calendar.startOfDay(for: now)
+            }
             lastInput = now
             set(.happy(t), now)
         case .hidden, .happy, .leaving:
@@ -124,15 +132,24 @@ public struct Duck: Sendable {
         }
     }
 
-    private mutating func callNow(_ now: Date, _ s: Sensors) {
-        tick(now, s, inputAt: now)
+    private var calendar: Calendar { timings.workHours?.calendar ?? .current }
+
+    private func stretchIsDue(_ now: Date) -> Bool {
+        guard let minutes = timings.stretchAt, (0..<24 * 60).contains(minutes) else { return false }
+        if let done = stretchDoneDay, calendar.isDate(done, inSameDayAs: now) { return false }
+        let clock = calendar.dateComponents([.hour, .minute], from: now)
+        return clock.hour! * 60 + clock.minute! >= minutes
+    }
+
+    private mutating func call(_ visit: Visit, _ now: Date, _ s: Sensors) {
+        tick(now, s, inputAt: now, allowArrival: false)
         guard phase == .hidden else { return }
-        workTime = timings.reminderInterval
-        enter(now, s)
+        if case .water = visit { workTime = timings.reminderInterval }
+        enter(visit, now, s)
     }
 
     /// `inputAt` is input the idle counter may not show yet.
-    private mutating func tick(_ now: Date, _ s: Sensors, inputAt: Date = .distantPast) {
+    private mutating func tick(_ now: Date, _ s: Sensors, inputAt: Date = .distantPast, allowArrival: Bool = true) {
         let last = lastTick ?? now
         let dt = max(0, now.timeIntervalSince(last))
         lastTick = now
@@ -165,14 +182,22 @@ public struct Duck: Sendable {
 
         switch phase {
         case .hidden:
-            if workTime >= timings.reminderInterval { enter(now, s) }
+            if allowArrival && inWorkHours && !away {
+                if stretchIsDue(now) { enter(.stretch(.remind), now, s) }
+                else if workTime >= timings.reminderInterval { enter(.water(.chill), now, s) }
+            }
         case .asleep(let t):
             if !away { set(.moving(t), now) }
         case .entering(let t), .moving(let t), .waiting(let t, _):
             if away {
                 set(.asleep(t), now)
             } else if let level, level != t {
-                set(level.place == .still ? .waiting(level, nil) : .moving(level), now)
+                if case .waiting = phase, level.place == t.place {
+                    set(.waiting(level, nil), now)
+                    scheduleTrick(level, now)
+                } else {
+                    set(level.place == .still ? .waiting(level, nil) : .moving(level), now)
+                }
             } else {
                 act(now, min(dt, 0.1), s)
             }
@@ -217,15 +242,15 @@ public struct Duck: Sendable {
         }
     }
 
-    private mutating func enter(_ now: Date, _ s: Sensors) {
+    private mutating func enter(_ visit: Visit, _ now: Date, _ s: Sensors) {
         guard let screen = s.screens.first else { return }
         takeStage(screen)
-        look = Look.random(using: &rng, unlike: look)
+        look = visit.randomLook(using: &rng, unlike: look)
         position = CGPoint(x: stage.maxX + Motion.offscreen, y: ground)
         facingRight = false
         shownAt = now
         arrivedAt = workTime
-        set(.entering(.water(.chill)), now)
+        set(.entering(visit), now)
     }
 
     private mutating func takeStage(_ screen: Screen) {

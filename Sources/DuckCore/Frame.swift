@@ -12,6 +12,8 @@ public struct Frame: Equatable, Sendable {
     public var particles: [Particle]
     public var lookClock: Int
     public var waterPhase: Double
+    public var sweatband = false
+    public var mat = false
 
     /// A small spring from 0.4 to 1 that overshoots on the way.
     static func bubbleScale(age: TimeInterval) -> Double {
@@ -64,10 +66,13 @@ extension Duck {
         default: .none
         }
         let pose = Pose(duck: self, now: now)
+        let mat: Bool
+        if case .waiting(let visit, _) = phase { mat = visit.usesMat } else { mat = false }
         return Frame(pose: pose, facingRight: facingRight, effect: effect,
                      bubble: bubble, bubbleScale: Frame.bubbleScale(age: now.timeIntervalSince(bubbleSince)),
                      look: look, particles: pose.particles, lookClock: look.isAnimated ? Int(w * 12) : 0,
-                     waterPhase: pose.water ? w * 4 : 0)
+                     waterPhase: pose.water ? w * 4 : 0,
+                     sweatband: phase.visit?.wearsSweatband ?? false, mat: mat)
     }
 
     /// Ticks per second the app needs to show the duck smoothly.
@@ -114,11 +119,26 @@ public struct Pose: Equatable, Sendable {
         let t = max(0, now.timeIntervalSince(duck.phaseStart))
         if duck.isWalking { walk(w) }
         switch duck.phase {
-        case .waiting(let thirst, let trick):
-            if thirst == .water(.thirsty) { tilt += 5 }
+        case .waiting(let visit, let trick):
+            if visit == .water(.thirsty) { tilt += 5 }
             guard let trick else { break }
-            let k = min(t / thirst.duration(of: trick), 1)
+            let k = min(t / visit.duration(of: trick), 1)
             switch trick {
+            case .reachUp:
+                let q = stretchEase(k < 0.5 ? 2 * k : 2 - 2 * k)
+                scaleY = 1 + 0.16 * q
+                scaleX = 1 - 0.07 * q
+                wingUp = q > 0.3
+                eyes = q > 0.7 ? .closed : .open
+            case .sideBend:
+                tilt = -16 * sin(k * 2 * .pi)
+                wingUp = true
+            case .toeTouch:
+                let seconds = k * trick.duration
+                let q = stretchEase(min(1, seconds / 1.1)) * (1 - stretchEase(max(0, (seconds - 1.7) / 1.1)))
+                tilt = 30 * q
+                scaleY = 1 - 0.08 * q
+                eyes = q > 0.6 ? .closed : .open
             case .blink: eyes = .closed
             case .lookBack: mirrored.toggle()
             case .hop: lift = 14 * sin(.pi * k)
@@ -392,7 +412,8 @@ public struct Pose: Equatable, Sendable {
         if (item ?? duck.look.item) == .skateboard { lift += 10 }
         if duck.look.palette == .ghost { lift += 3 + 3 * sin(2.2 * w) }
         switch duck.phase {
-        case .waiting(_, .roll?), .waiting(_, .backflip?), .waiting(_, .trip?):
+        case .waiting(_, .roll?), .waiting(_, .backflip?), .waiting(_, .trip?),
+             .waiting(_, .reachUp?), .waiting(_, .sideBend?), .waiting(_, .toeTouch?):
             var bounds = Layout.artBounds(look: duck.look, pose: self)
             if tilt != 0 || spin != 0 {
                 // Sprite.fill extends turned cells right and down to hide seams.
@@ -412,6 +433,7 @@ public struct Pose: Equatable, Sendable {
     }
 }
 
+private func stretchEase(_ k: Double) -> Double { 0.5 - 0.5 * cos(.pi * k) }
 private func clamp(_ x: Double) -> Double { max(0, min(1, x)) }
 private func ease(_ k: Double) -> Double { k < 0.5 ? 2 * k * k : 1 - pow(-2 * k + 2, 2) / 2 }
 

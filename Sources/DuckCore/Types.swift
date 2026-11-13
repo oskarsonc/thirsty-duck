@@ -45,17 +45,22 @@ public enum Thirst: Int, Comparable, Sendable {
     }
 }
 
+public enum StretchLevel: Int, Sendable {
+    case remind = 1, insist, follow
+}
+
 public enum Visit: Equatable, Sendable {
     case water(Thirst)
+    case stretch(StretchLevel)
 
     enum Place { case home, ask, still, follow }
 
     var place: Place {
         switch self {
-        case .water(.chill): .home
+        case .water(.chill), .stretch(.remind), .stretch(.insist): .home
         case .water(.ask): .ask
         case .water(.thirsty): .still
-        case .water(.follow): .follow
+        case .water(.follow), .stretch(.follow): .follow
         }
     }
 
@@ -63,6 +68,7 @@ public enum Visit: Equatable, Sendable {
         let steps = max(0, Int(elapsed / step))
         switch self {
         case .water: return .water(Thirst(rawValue: min(4, 1 + steps))!)
+        case .stretch: return .stretch(StretchLevel(rawValue: min(3, 1 + steps))!)
         }
     }
 
@@ -72,39 +78,101 @@ public enum Visit: Equatable, Sendable {
         case .water(.ask): Bubble(text: "drink! 💧", alarm: false)
         case .water(.thirsty): Bubble(text: "so thirsty… 💧💧", alarm: true)
         case .water(.follow): .follow
+        case .stretch(.remind): Bubble(text: "stretch time! 🙆", alarm: false)
+        case .stretch(.insist): Bubble(text: "come on, stretch!", alarm: false)
+        case .stretch(.follow): .stretchFollow
         }
     }
 
-    var happyBubble: Bubble { Bubble(text: "thank you! 💛", alarm: false) }
-    var cyclesBubble: Bool { self == .water(.chill) }
+    var happyBubble: Bubble {
+        switch self {
+        case .water: Bubble(text: "thank you! 💛", alarm: false)
+        case .stretch: Bubble(text: "nice! 💪", alarm: false)
+        }
+    }
+    var wearsSweatband: Bool {
+        switch self {
+        case .water: false
+        case .stretch: true
+        }
+    }
+    var usesMat: Bool {
+        switch self {
+        case .stretch(.remind), .stretch(.insist): true
+        default: false
+        }
+    }
+
+    func randomLook<R: RandomNumberGenerator>(using rng: inout R, unlike previous: Look) -> Look {
+        while true {
+            var look = Look.random(using: &rng, unlike: previous)
+            switch self {
+            case .water: break
+            case .stretch:
+                look.hat = nil
+                look.item = nil
+            }
+            if look != previous { return look }
+        }
+    }
+    var cyclesBubble: Bool { self == .water(.chill) || self == .stretch(.remind) }
     var allowsMoveSpeech: Bool {
         switch self {
         case .water(let thirst): thirst <= .ask
+        case .stretch: false
         }
     }
     var sweats: Bool {
         switch self {
         case .water(let thirst): thirst >= .thirsty
+        case .stretch: false
         }
     }
-    var restingTrick: Trick? { place == .follow ? .shake : nil }
+    var restingTrick: Trick? {
+        switch self {
+        case .water(.follow): .shake
+        case .stretch(.follow): .reachUp
+        default: nil
+        }
+    }
     var oldTricks: [Trick] {
-        switch self { case .water(let thirst): thirst.oldTricks }
+        switch self {
+        case .water(let thirst): thirst.oldTricks
+        case .stretch(.follow): [.reachUp]
+        case .stretch: [.reachUp, .sideBend, .toeTouch]
+        }
     }
     var newTricks: [Trick] {
-        switch self { case .water(let thirst): thirst.newTricks }
+        switch self {
+        case .water(let thirst): thirst.newTricks
+        case .stretch: []
+        }
     }
     var oldTrickWeight: Double {
-        switch self { case .water(let thirst): thirst.oldTrickWeight }
+        switch self {
+        case .water(let thirst): thirst.oldTrickWeight
+        case .stretch: 1
+        }
     }
     var trickGap: ClosedRange<TimeInterval> {
-        switch self { case .water(let thirst): thirst.trickGap }
+        switch self {
+        case .water(let thirst): thirst.trickGap
+        case .stretch(.remind), .stretch(.follow): 1.5...3
+        case .stretch(.insist): 0.5...1
+        }
     }
 
-    func duration(of trick: Trick) -> TimeInterval { trick.duration }
+    public func duration(of trick: Trick) -> TimeInterval {
+        switch (self, trick) {
+        case (.stretch(.insist), .reachUp), (.stretch(.insist), .sideBend), (.stretch(.insist), .toeTouch):
+            trick.duration / 1.5
+        default: trick.duration
+        }
+    }
 }
 
 public enum Trick: Equatable, Sendable {
+    case reachUp, sideBend, toeTouch
     case blink, lookBack, hop, wiggle, peck, stroll(right: Bool), hopHop, shake
 
     case moonwalk, spin, backflip, roll, wave, hover, dance, tapDance, jelly, yawn, sneeze, quack
@@ -113,6 +181,8 @@ public enum Trick: Equatable, Sendable {
 
     public var duration: TimeInterval {
         switch self {
+        case .reachUp: 2.4
+        case .sideBend, .toeTouch: 2.8
         case .blink: 0.25
         case .lookBack: 1.2
         case .hop: 0.5
@@ -169,6 +239,7 @@ public struct Bubble: Equatable, Sendable {
     public let alarm: Bool
 
     static let follow = Bubble(text: "DRINK WATER! 🥵", alarm: false)
+    static let stretchFollow = Bubble(text: "STRETCH NOW!", alarm: false)
 }
 
 public struct Screen: Sendable {
@@ -196,7 +267,7 @@ public struct Sensors: Sendable {
 }
 
 public enum DuckInput: Sendable {
-    case tick, click, callNow, newLook
+    case tick, click, callNow, stretchNow, newLook
     /// The Mac goes to sleep or wakes up (`NSWorkspace` notifications).
     case sleep, wake
 }

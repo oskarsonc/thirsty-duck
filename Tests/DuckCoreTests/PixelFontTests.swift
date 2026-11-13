@@ -22,12 +22,20 @@ func allBubbleTexts() -> Set<String> {
         for trick in thirst.oldTricks + thirst.newTricks { sample(.waiting(.water(thirst), trick), for: trick.duration) }
     }
     sample(.happy(.water(.chill)), for: 0)
+    for level in [StretchLevel.remind, .insist, .follow] {
+        sample(.waiting(.stretch(level), nil), for: Motion.chillBubbleCycle)
+        for trick in [Trick.reachUp, .sideBend, .toeTouch] {
+            sample(.waiting(.stretch(level), trick), for: trick.duration)
+        }
+    }
+    sample(.happy(.stretch(.remind)), for: 0)
     return texts
 }
 
 @Test func everyBubbleCharacterHasAGlyph() {
     let texts = allBubbleTexts()
     #expect(texts.isSuperset(of: ["💧?", "drink! 💧", "so thirsty… 💧💧", "DRINK WATER! 🥵", "thank you! 💛",
+                                  "stretch time! 🙆", "come on, stretch!", "STRETCH NOW!", "nice! 💪",
                                   "hi!", "yaawn", "achoo!", "quack!", "glug glug", "ahh 💙", "💪", "brrr", "boo!", "oops!"]))
     for text in texts {
         for c in text {

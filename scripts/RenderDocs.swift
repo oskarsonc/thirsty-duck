@@ -236,6 +236,7 @@ struct DemoScene: View {
     func caption(_ d: Duck) -> String {
         switch d.phase {
         case .hidden: "You work at your Mac…"
+        case .entering(.stretch), .moving(.stretch), .waiting(.stretch, _): "Time to stretch"
         case .entering(.water(.chill)), .moving(.water(.chill)), .waiting(.water(.chill), _): "1 · Chill: it walks in and does little tricks"
         case .entering(.water(.ask)), .moving(.water(.ask)), .waiting(.water(.ask), _): "2 · Ask: “drink! 💧”"
         case .entering(.water(.thirsty)), .moving(.water(.thirsty)), .waiting(.water(.thirsty), _): "3 · Thirsty: it sweats and shakes"
