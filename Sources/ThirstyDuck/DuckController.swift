@@ -20,6 +20,8 @@ final class DuckController {
 
     init(timings: Timings, time: any TimeSource = SystemTime()) {
         duck = Duck(timings: timings)
+        // Fast mode is a demo, so it must not use up or mark the real day's stretch.
+        if timings.workHours != nil { duck.stretchDoneDay = Settings.stretchDoneDay }
         self.time = time
         host = NSHostingView(rootView: DuckView(frame: duck.frame(at: time.now)))
         host.frame = NSRect(origin: .zero, size: Layout.panel)
@@ -43,13 +45,18 @@ final class DuckController {
 
     func newLook() { send(.newLook) }
 
+    func stretchNow() { send(.stretchNow) }
+
     var canChangeLook: Bool { duck.canChangeLook }
+
+    var isVisible: Bool { duck.isVisible }
 
     /// Uses the menu choices. Fast mode keeps its own short times and no hours.
     func applySettings() {
         guard duck.timings.workHours != nil else { return }
         duck.timings.reminderInterval = TimeInterval(Settings.reminderMinutes * 60)
         duck.timings.workHours = Settings.workHours
+        duck.timings.stretchAt = Settings.stretchMinutes
         send(.tick)
     }
 
@@ -61,7 +68,9 @@ final class DuckController {
         let now = time.now
         let mouse = NSEvent.mouseLocation
         let idle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+        let done = duck.stretchDoneDay
         duck.step(now: now, sensors: Sensors(idleSeconds: idle, mouse: mouse, screens: screens), input: input)
+        if duck.stretchDoneDay != done && duck.timings.workHours != nil { Settings.stretchDoneDay = duck.stretchDoneDay }
         render(now, mouse: mouse)
         let wanted = duck.tickRate(at: now)
         if debug { log(now, wanted) }

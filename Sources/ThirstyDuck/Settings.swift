@@ -8,6 +8,7 @@ enum Settings {
     static let reminderChoices = [20, 30, 45, 60]
     static let startChoices = Array(6...12)
     static let endChoices = Array(16...24)
+    static let stretchChoices = Array(stride(from: 10 * 60, through: 16 * 60, by: 30))
 
     /// Minutes of computer use before the duck comes.
     static var reminderMinutes: Int {
@@ -35,6 +36,22 @@ enum Settings {
     static var weekends: Bool {
         get { defaults.object(forKey: "weekends") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "weekends") }
+    }
+
+    /// Minutes after midnight of the daily stretch. `nil` is Off, which is saved as -1 so it differs from no choice yet.
+    static var stretchMinutes: Int? {
+        get {
+            guard let value = defaults.object(forKey: "stretchMinutes") as? Int else { return 12 * 60 }
+            if value == -1 { return nil }
+            return stretchChoices.contains(value) ? value : 12 * 60
+        }
+        set { defaults.set(newValue ?? -1, forKey: "stretchMinutes") }
+    }
+
+    /// The day of the last stretch click, so a restart does not bring the stretch duck again that day.
+    static var stretchDoneDay: Date? {
+        get { defaults.object(forKey: "stretchDoneDay") as? Date }
+        set { defaults.set(newValue, forKey: "stretchDoneDay") }
     }
 
     static var workHours: WorkHours {

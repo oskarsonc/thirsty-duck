@@ -10,6 +10,7 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
     private let reminderMenu = NSMenu()
     private let startMenu = NSMenu()
     private let endMenu = NSMenu()
+    private let stretchMenu = NSMenu()
     private let weekendsItem = NSMenuItem(title: "Weekends", action: #selector(toggleWeekends), keyEquivalent: "")
     private let screenItem = NSMenuItem(title: "Show on", action: nil, keyEquivalent: "")
     private let screenMenu = NSMenu()
@@ -25,6 +26,7 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
         menu.addItem(statusLine)
         menu.addItem(withTitle: "Call the duck now", action: #selector(call), keyEquivalent: "").target = self
         menu.addItem(withTitle: "New look now", action: #selector(newLook), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Stretch now", action: #selector(stretch), keyEquivalent: "").target = self
         menu.addItem(.separator())
         if !fast {
             menu.addItem(submenu("Remind every", reminderMenu, Settings.reminderChoices, #selector(pickReminder)) { "\($0) min" })
@@ -36,6 +38,13 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
             let hoursItem = NSMenuItem(title: "Active hours", action: nil, keyEquivalent: "")
             hoursItem.submenu = hoursMenu
             menu.addItem(hoursItem)
+            let off = stretchMenu.addItem(withTitle: "Off", action: #selector(pickStretch), keyEquivalent: "")
+            off.target = self
+            off.tag = -1
+            stretchMenu.addItem(.separator())
+            menu.addItem(submenu("Stretch at", stretchMenu, Settings.stretchChoices, #selector(pickStretch)) {
+                String(format: "%02d:%02d", $0 / 60, $0 % 60)
+            })
         }
         screenItem.submenu = screenMenu
         menu.addItem(screenItem)
@@ -62,8 +71,10 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
     func menuNeedsUpdate(_ menu: NSMenu) {
         statusLine.title = statusText(controller.status)
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        for (submenu, value) in [(reminderMenu, Settings.reminderMinutes), (startMenu, Settings.startHour), (endMenu, Settings.endHour)] {
-            for choice in submenu.items { choice.state = choice.tag == value ? .on : .off }
+        let menus = [(reminderMenu, Settings.reminderMinutes), (startMenu, Settings.startHour), (endMenu, Settings.endHour),
+                     (stretchMenu, Settings.stretchMinutes ?? -1)]
+        for (submenu, value) in menus {
+            for choice in submenu.items where !choice.isSeparatorItem { choice.state = choice.tag == value ? .on : .off }
         }
         weekendsItem.state = Settings.weekends ? .on : .off
 
@@ -85,7 +96,11 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        menuItem.action != #selector(newLook) || controller.canChangeLook
+        switch menuItem.action {
+        case #selector(newLook): controller.canChangeLook
+        case #selector(stretch): !controller.isVisible
+        default: true
+        }
     }
 
     private func statusText(_ status: DuckStatus) -> String {
@@ -107,6 +122,8 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
 
     @objc private func newLook() { controller.newLook() }
 
+    @objc private func stretch() { controller.stretchNow() }
+
     @objc private func pickReminder(_ sender: NSMenuItem) {
         Settings.reminderMinutes = sender.tag
         controller.applySettings()
@@ -119,6 +136,11 @@ final class StatusMenu: NSObject, NSMenuDelegate, NSMenuItemValidation {
 
     @objc private func pickEnd(_ sender: NSMenuItem) {
         Settings.endHour = sender.tag
+        controller.applySettings()
+    }
+
+    @objc private func pickStretch(_ sender: NSMenuItem) {
+        Settings.stretchMinutes = sender.tag == -1 ? nil : sender.tag
         controller.applySettings()
     }
 
